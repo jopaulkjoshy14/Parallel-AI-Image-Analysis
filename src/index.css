@@ -1,0 +1,158 @@
+body {
+  margin: 0;
+  min-width: 320px;
+  background: #f5f7fa;
+  color: #212529;
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+
+.app-header {
+  background: #212529;
+  color: white;
+}
+
+.panel-card {
+  height: 100%;
+  border: 1px solid #dee2e6;
+  border-radius: 12px;
+  background: white;
+  overflow: hidden;
+}
+
+.panel-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.sequential-header {
+  background: #fff3cd;
+}
+
+.parallel-header {
+  background: #d1e7dd;
+}
+
+.result-section {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #edf0f2;
+}
+
+.result-section:last-child {
+  border-bottom: 0;
+}
+
+.image-preview {
+  max-height: 300px;
+  max-width: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.palette-container {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.palette-item {
+  flex: 1 1 80px;
+  min-width: 80px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #dee2e6;
+}
+
+.palette-colour {
+  height: 70px;
+}
+
+.palette-label {
+  padding: 0.4rem;
+  text-align: center;
+  font-size: 0.75rem;
+  background: white;
+}
+
+.worker-card {
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 0.75rem;
+  background: #f8f9fa;
+}
+
+.worker-card.active {
+  border-color: #198754;
+  background: #f0fff7;
+}
+
+.worker-card.complete {
+  border-color: #198754;
+}
+
+.worker-card.error {
+  border-color: #dc3545;
+}
+
+.worker-progress {
+  height: 7px;
+}
+
+.metric-value {
+  font-weight: 700;
+}
+
+.performance-table th {
+  white-space: nowrap;
+}
+
+.drop-zone {
+  border: 2px dashed #adb5bd;
+  border-radius: 12px;
+  padding: 2rem;
+  text-align: center;
+  background: white;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.drop-zone:hover {
+  border-color: #495057;
+  background: #f8f9fa;
+}
+
+.histogram-canvas {
+  width: 100%;
+  height: 220px;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  background: white;
+}
+
+.status-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 6px;
+}
+
+.status-idle {
+  background: #adb5bd;
+}
+
+.status-running {
+  background: #ffc107;
+}
+
+.status-complete {
+  background: #198754;
+}
+
+.status-error {
+  background: #dc3545;
+}
