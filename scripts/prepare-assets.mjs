@@ -18,12 +18,27 @@ const modelDirectory = path.join(
   "mobilevit-x-small"
 );
 
-const wasmDirectory = path.join(root, "public", "wasm");
+const wasmDirectory = path.join(
+  root,
+  "public",
+  "wasm"
+);
 
-fs.mkdirSync(modelDirectory, { recursive: true });
-fs.mkdirSync(wasmDirectory, { recursive: true });
+fs.mkdirSync(modelDirectory, {
+  recursive: true
+});
+
+fs.mkdirSync(wasmDirectory, {
+  recursive: true
+});
 
 console.log("\nPreparing local AI assets...\n");
+
+/*
+ * ---------------------------------------------------------
+ * Download local AI model
+ * ---------------------------------------------------------
+ */
 
 const modelFiles = [
   "config.json",
@@ -32,20 +47,33 @@ const modelFiles = [
 ];
 
 for (const file of modelFiles) {
-  const destination = path.join(modelDirectory, file);
-  const destinationDirectory = path.dirname(destination);
+  const destination =
+    path.join(modelDirectory, file);
 
-  fs.mkdirSync(destinationDirectory, { recursive: true });
+  const destinationDirectory =
+    path.dirname(destination);
+
+  fs.mkdirSync(
+    destinationDirectory,
+    {
+      recursive: true
+    }
+  );
 
   if (fs.existsSync(destination)) {
-    console.log(`✓ ${file} already exists`);
+    console.log(
+      `✓ ${file} already exists`
+    );
+
     continue;
   }
 
   const url =
     `https://huggingface.co/${modelId}/resolve/main/${file}`;
 
-  console.log(`Downloading ${file}...`);
+  console.log(
+    `Downloading ${file}...`
+  );
 
   try {
     execSync(
@@ -55,19 +83,46 @@ for (const file of modelFiles) {
       }
     );
   } catch {
-    console.error(`Failed to download ${file}`);
+    console.error(
+      `Failed to download ${file}`
+    );
+
     process.exit(1);
   }
 }
 
-console.log("\nPreparing ONNX Runtime WASM files...\n");
+/*
+ * ---------------------------------------------------------
+ * Copy ONNX Runtime Web assets
+ * ---------------------------------------------------------
+ *
+ * Transformers.js may require both:
+ *
+ *   .wasm
+ *   .mjs
+ *
+ * runtime files.
+ *
+ * Previously only .wasm files were copied,
+ * which caused:
+ *
+ * Failed to fetch dynamically imported module:
+ * ort-wasm-simd-threaded.jsep.mjs
+ *
+ * ---------------------------------------------------------
+ */
 
-const nodeModulesRoot = path.join(
-  root,
-  "node_modules",
-  "onnxruntime-web",
-  "dist"
+console.log(
+  "\nPreparing ONNX Runtime WASM files...\n"
 );
+
+const nodeModulesRoot =
+  path.join(
+    root,
+    "node_modules",
+    "onnxruntime-web",
+    "dist"
+  );
 
 if (!fs.existsSync(nodeModulesRoot)) {
   console.error(
@@ -77,17 +132,40 @@ if (!fs.existsSync(nodeModulesRoot)) {
   process.exit(1);
 }
 
-const wasmFiles = fs
-  .readdirSync(nodeModulesRoot)
-  .filter((file) => file.endsWith(".wasm"));
+const runtimeFiles =
+  fs
+    .readdirSync(nodeModulesRoot)
+    .filter(
+      (file) =>
+        file.endsWith(".wasm") ||
+        file.endsWith(".mjs")
+    );
 
-for (const file of wasmFiles) {
-  fs.copyFileSync(
-    path.join(nodeModulesRoot, file),
-    path.join(wasmDirectory, file)
+if (runtimeFiles.length === 0) {
+  console.error(
+    "No ONNX Runtime WASM or MJS files were found."
   );
 
-  console.log(`✓ ${file}`);
+  process.exit(1);
 }
 
-console.log("\nLocal AI assets are ready.\n");
+for (const file of runtimeFiles) {
+  fs.copyFileSync(
+    path.join(
+      nodeModulesRoot,
+      file
+    ),
+    path.join(
+      wasmDirectory,
+      file
+    )
+  );
+
+  console.log(
+    `✓ ${file}`
+  );
+}
+
+console.log(
+  "\nLocal AI assets are ready.\n"
+);
