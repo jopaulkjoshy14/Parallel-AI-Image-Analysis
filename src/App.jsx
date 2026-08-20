@@ -1064,7 +1064,7 @@ export default function App() {
             </div>
 
             <div className="processing-divider">
-              <span className="text-center mt-3 mb-3">VS</span>
+              <span>VS</span>
             </div>
 
             <div className="processing-column">
