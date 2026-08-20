@@ -1015,4 +1015,30 @@ export default function App() {
           </div>
         </section>
 
-        <section className="card border-0 shad
+        <section className="card border-0 shadow-sm mt-4">
+          <div className="card-header bg-dark text-white">
+            <h2 className="h5 mb-0">
+              Sequential vs Parallel Performance
+            </h2>
+          </div>
+
+          <div className="card-body p-0">
+            <ComparisonTable
+              sequential={
+                sequential
+              }
+              parallel={
+                parallel
+              }
+            />
+          </div>
+        </section>
+      </main>
+
+      <footer className="text-center text-secondary small py-4">
+        Parallel AI-Based Colour Palette
+        Extraction and Image Analysis
+      </footer>
+    </div>
+  );
+}
