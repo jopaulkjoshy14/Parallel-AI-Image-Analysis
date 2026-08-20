@@ -1,16 +1,10 @@
 import {
-  kMeans
-} from "../utils/kmeans";
-
-import {
-  calculateHistogram,
-  calculateStatistics
-} from "../utils/imageProcessing";
-
-import {
   pipeline,
-  env
+  env,
+  RawImage
 } from "@huggingface/transformers";
+
+import { kMeans } from "../utils/kmeans";
 
 env.allowRemoteModels = false;
 env.allowLocalModels = true;
@@ -23,17 +17,19 @@ env.backends.onnx.wasm.wasmPaths =
 
 let classifier = null;
 
-async function getClassifier() {
-  if (!classifier) {
-    classifier = await pipeline(
-      "image-classification",
-      "Xenova/mobilevit-x-small",
-      {
-        device: "wasm",
-        dtype: "q8"
-      }
-    );
+async function loadClassifier() {
+  if (classifier) {
+    return classifier;
   }
+
+  classifier = await pipeline(
+    "image-classification",
+    "Xenova/mobilevit-x-small",
+    {
+      device: "wasm",
+      dtype: "q8"
+    }
+  );
 
   return classifier;
 }
@@ -44,23 +40,29 @@ self.onmessage = async (event) => {
     pixels,
     width,
     height,
-    fileSize,
-    imageData
+    fileSize
   } = event.data;
 
   const totalStart =
     performance.now();
 
   try {
-    // 1. K-Means
+    /*
+     * -------------------------------------------------
+     * STEP 1
+     * K-Means colour extraction
+     * -------------------------------------------------
+     */
+
     const colourStart =
       performance.now();
 
-    const palette = kMeans(
-      pixels,
-      5,
-      15
-    );
+    const palette =
+      kMeans(
+        pixels,
+        5,
+        15
+      );
 
     const colourTime =
       performance.now() -
@@ -69,19 +71,42 @@ self.onmessage = async (event) => {
     self.postMessage({
       type: "step",
       step: "colour",
-      duration: colourTime,
-      result: palette
+      result: palette,
+      duration: colourTime
     });
 
-    // 2. AI
+    /*
+     * -------------------------------------------------
+     * STEP 2
+     * AI image classification
+     * -------------------------------------------------
+     */
+
     const aiStart =
       performance.now();
 
     const model =
-      await getClassifier();
+      await loadClassifier();
+
+    /*
+     * Transformers.js expects an image input.
+     *
+     * Convert the RGBA pixel data into
+     * a RawImage object.
+     *
+     * 4 = RGBA channels.
+     */
+
+    const image =
+      new RawImage(
+        new Uint8ClampedArray(rgba),
+        width,
+        height,
+        4
+      );
 
     const aiResult =
-      await model(imageData, {
+      await model(image, {
         top_k: 5
       });
 
@@ -92,16 +117,35 @@ self.onmessage = async (event) => {
     self.postMessage({
       type: "step",
       step: "ai",
-      duration: aiTime,
-      result: aiResult
+      result: aiResult,
+      duration: aiTime
     });
 
-    // 3. Histogram
+    /*
+     * -------------------------------------------------
+     * STEP 3
+     * RGB histogram
+     * -------------------------------------------------
+     */
+
     const histogramStart =
       performance.now();
 
-    const histogram =
-      calculateHistogram(rgba);
+    const histogram = {
+      red: new Array(256).fill(0),
+      green: new Array(256).fill(0),
+      blue: new Array(256).fill(0)
+    };
+
+    for (
+      let i = 0;
+      i < rgba.length;
+      i += 4
+    ) {
+      histogram.red[rgba[i]]++;
+      histogram.green[rgba[i + 1]]++;
+      histogram.blue[rgba[i + 2]]++;
+    }
 
     const histogramTime =
       performance.now() -
@@ -110,21 +154,92 @@ self.onmessage = async (event) => {
     self.postMessage({
       type: "step",
       step: "histogram",
-      duration: histogramTime,
-      result: histogram
+      result: histogram,
+      duration: histogramTime
     });
 
-    // 4. Statistics
+    /*
+     * -------------------------------------------------
+     * STEP 4
+     * Image statistics
+     * -------------------------------------------------
+     */
+
     const statisticsStart =
       performance.now();
 
-    const statistics =
-      calculateStatistics(
-        rgba,
-        width,
-        height,
-        fileSize
-      );
+    let redSum = 0;
+    let greenSum = 0;
+    let blueSum = 0;
+
+    let minRed = 255;
+    let minGreen = 255;
+    let minBlue = 255;
+
+    let maxRed = 0;
+    let maxGreen = 0;
+    let maxBlue = 0;
+
+    const pixelCount =
+      rgba.length / 4;
+
+    for (
+      let i = 0;
+      i < rgba.length;
+      i += 4
+    ) {
+      const r = rgba[i];
+      const g = rgba[i + 1];
+      const b = rgba[i + 2];
+
+      redSum += r;
+      greenSum += g;
+      blueSum += b;
+
+      if (r < minRed) minRed = r;
+      if (g < minGreen) minGreen = g;
+      if (b < minBlue) minBlue = b;
+
+      if (r > maxRed) maxRed = r;
+      if (g > maxGreen) maxGreen = g;
+      if (b > maxBlue) maxBlue = b;
+    }
+
+    const statistics = {
+      width,
+      height,
+      pixelCount,
+      fileSize,
+
+      averageRGB: {
+        red:
+          pixelCount
+            ? redSum / pixelCount
+            : 0,
+
+        green:
+          pixelCount
+            ? greenSum / pixelCount
+            : 0,
+
+        blue:
+          pixelCount
+            ? blueSum / pixelCount
+            : 0
+      },
+
+      minRGB: {
+        red: minRed,
+        green: minGreen,
+        blue: minBlue
+      },
+
+      maxRGB: {
+        red: maxRed,
+        green: maxGreen,
+        blue: maxBlue
+      }
+    };
 
     const statisticsTime =
       performance.now() -
@@ -133,9 +248,15 @@ self.onmessage = async (event) => {
     self.postMessage({
       type: "step",
       step: "statistics",
-      duration: statisticsTime,
-      result: statistics
+      result: statistics,
+      duration: statisticsTime
     });
+
+    /*
+     * -------------------------------------------------
+     * Sequential experiment complete
+     * -------------------------------------------------
+     */
 
     const totalTime =
       performance.now() -
@@ -145,10 +266,18 @@ self.onmessage = async (event) => {
       type: "complete",
       totalTime
     });
+
   } catch (error) {
+    console.error(
+      "Sequential worker error:",
+      error
+    );
+
     self.postMessage({
       type: "error",
-      error: error.message
+      error:
+        error?.message ||
+        String(error)
     });
   }
 };
