@@ -2,6 +2,8 @@
 
 A browser-based mini project that demonstrates **parallel computing through AI-assisted image analysis**. The application compares sequential and parallel execution of independent image-processing tasks and visualizes the resulting performance.
 
+[🚀 **Live Demo**](https://parallel-ai-image-analysis.onrender.com/)
+
 ## Project Objective
 
 The objective of this project is to demonstrate how **parallel computing can improve image-processing workloads** by dividing independent tasks among multiple Web Workers.
