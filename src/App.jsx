@@ -162,9 +162,7 @@ export default function App() {
     );
   }
 
-  async function handleImageSelected(
-    file
-  ) {
+  async function handleImageSelected(file) {
     if (running) {
       return;
     }
@@ -230,6 +228,12 @@ export default function App() {
     resetResults();
 
     try {
+      /*
+       * -------------------------------------------------
+       * Prepare image data
+       * -------------------------------------------------
+       */
+
       const processed =
         await loadImageData(
           imageFile
@@ -244,28 +248,48 @@ export default function App() {
       const pixels =
         samplePixels(data);
 
-      const imageData = new ImageData(
-        new Uint8ClampedArray(data),
+      const imageData =
+        new ImageData(
+          new Uint8ClampedArray(data),
+          width,
+          height
+        );
+
+      /*
+       * -------------------------------------------------
+       * STEP 1
+       *
+       * Run the complete sequential experiment first.
+       * -------------------------------------------------
+       */
+
+      const sequentialTime =
+        await runSequential(
+          data,
+          pixels,
+          width,
+          height,
+          imageData
+        );
+
+      /*
+       * -------------------------------------------------
+       * STEP 2
+       *
+       * Only after sequential execution has completed,
+       * start the parallel experiment.
+       * -------------------------------------------------
+       */
+
+      await runParallel(
+        data,
+        pixels,
         width,
-        height
+        height,
+        imageData,
+        sequentialTime
       );
 
-      await Promise.all([
-        runSequential(
-          data,
-          pixels,
-          width,
-          height,
-          imageData
-        ),
-        runParallel(
-          data,
-          pixels,
-          width,
-          height,
-          imageData
-        )
-      ]);
     } catch (error) {
       console.error(error);
 
@@ -274,7 +298,8 @@ export default function App() {
           ...current,
           status:
             "Error: " +
-            error.message
+            (error.message ||
+              "Unknown error")
         })
       );
     } finally {
@@ -311,6 +336,10 @@ export default function App() {
             const message =
               event.data;
 
+            /*
+             * Sequential processing step
+             */
+
             if (
               message.type ===
               "step"
@@ -329,6 +358,7 @@ export default function App() {
                   ) {
                     next.palette =
                       message.result;
+
                     next.colourTime =
                       message.duration;
                   }
@@ -339,6 +369,7 @@ export default function App() {
                   ) {
                     next.ai =
                       message.result;
+
                     next.aiTime =
                       message.duration;
                   }
@@ -349,6 +380,7 @@ export default function App() {
                   ) {
                     next.histogram =
                       message.result;
+
                     next.histogramTime =
                       message.duration;
                   }
@@ -359,6 +391,7 @@ export default function App() {
                   ) {
                     next.statistics =
                       message.result;
+
                     next.statisticsTime =
                       message.duration;
                   }
@@ -367,6 +400,10 @@ export default function App() {
                 }
               );
             }
+
+            /*
+             * Sequential processing complete
+             */
 
             if (
               message.type ===
@@ -382,13 +419,29 @@ export default function App() {
                 })
               );
 
-              resolve();
+              worker.terminate();
+
+              sequentialWorker.current =
+                null;
+
+              resolve(
+                message.totalTime
+              );
             }
+
+            /*
+             * Sequential error
+             */
 
             if (
               message.type ===
               "error"
             ) {
+              worker.terminate();
+
+              sequentialWorker.current =
+                null;
+
               reject(
                 new Error(
                   message.error
@@ -399,6 +452,11 @@ export default function App() {
 
         worker.onerror =
           (error) => {
+            worker.terminate();
+
+            sequentialWorker.current =
+              null;
+
             reject(error);
           };
 
@@ -420,7 +478,8 @@ export default function App() {
     pixels,
     width,
     height,
-    imageData
+    imageData,
+    sequentialTime
   ) {
     return new Promise(
       (resolve, reject) => {
@@ -429,40 +488,91 @@ export default function App() {
 
         let completed = 0;
 
+        let failed = false;
+
         const handleComplete =
           () => {
             completed++;
 
-            if (completed === 4) {
+            if (
+              completed === 4 &&
+              !failed
+            ) {
               const totalTime =
                 performance.now() -
                 start;
 
-              setParallel(
-                (current) => {
-                  const speedup =
-                    calculateSpeedup(
-                      sequential.totalTime ||
-                        totalTime,
-                      totalTime
-                    );
+              /*
+               * Use the actual sequential
+               * benchmark value passed into
+               * this function.
+               */
 
-                  return {
-                    ...current,
-                    totalTime,
-                    speedup,
-                    efficiency:
-                      calculateEfficiency(
-                        speedup,
-                        4
-                      )
-                  };
-                }
+              const speedup =
+                calculateSpeedup(
+                  sequentialTime,
+                  totalTime
+                );
+
+              const efficiency =
+                calculateEfficiency(
+                  speedup,
+                  4
+                );
+
+              setParallel(
+                (current) => ({
+                  ...current,
+                  totalTime,
+                  speedup,
+                  efficiency
+                })
               );
 
-              resolve();
+              resolve(
+                totalTime
+              );
             }
           };
+
+        const handleError =
+          (
+            workerId,
+            worker,
+            error
+          ) => {
+            if (failed) {
+              return;
+            }
+
+            failed = true;
+
+            const message =
+              error?.message ||
+              error ||
+              "Worker failed";
+
+            updateWorker(
+              workerId,
+              {
+                status: "error",
+                progress: 0,
+                duration: null
+              }
+            );
+
+            worker.terminate();
+
+            reject(
+              new Error(
+                message
+              )
+            );
+          };
+
+        /*
+         * Create workers
+         */
 
         const colour =
           new Worker(
@@ -517,7 +627,12 @@ export default function App() {
         statisticsWorker.current =
           statistics;
 
-        aiWorker.current = ai;
+        aiWorker.current =
+          ai;
+
+        /*
+         * Mark workers as running
+         */
 
         updateWorker(
           1,
@@ -550,6 +665,10 @@ export default function App() {
             progress: 10
           }
         );
+
+        /*
+         * K-Means worker
+         */
 
         colour.onmessage =
           (event) => {
@@ -585,7 +704,22 @@ export default function App() {
 
               handleComplete();
             }
+
+            if (
+              message.type ===
+              "error"
+            ) {
+              handleError(
+                1,
+                colour,
+                message.error
+              );
+            }
           };
+
+        /*
+         * Histogram worker
+         */
 
         histogram.onmessage =
           (event) => {
@@ -621,7 +755,22 @@ export default function App() {
 
               handleComplete();
             }
+
+            if (
+              message.type ===
+              "error"
+            ) {
+              handleError(
+                3,
+                histogram,
+                message.error
+              );
+            }
           };
+
+        /*
+         * Statistics worker
+         */
 
         statistics.onmessage =
           (event) => {
@@ -657,7 +806,22 @@ export default function App() {
 
               handleComplete();
             }
+
+            if (
+              message.type ===
+              "error"
+            ) {
+              handleError(
+                4,
+                statistics,
+                message.error
+              );
+            }
           };
+
+        /*
+         * AI worker
+         */
 
         ai.onmessage =
           (event) => {
@@ -693,19 +857,65 @@ export default function App() {
 
               handleComplete();
             }
+
+            if (
+              message.type ===
+              "error"
+            ) {
+              handleError(
+                2,
+                ai,
+                message.error
+              );
+            }
           };
 
+        /*
+         * Worker runtime errors
+         */
+
         colour.onerror =
-          reject;
+          (error) => {
+            handleError(
+              1,
+              colour,
+              error
+            );
+          };
 
         histogram.onerror =
-          reject;
+          (error) => {
+            handleError(
+              3,
+              histogram,
+              error
+            );
+          };
 
         statistics.onerror =
-          reject;
+          (error) => {
+            handleError(
+              4,
+              statistics,
+              error
+            );
+          };
 
         ai.onerror =
-          reject;
+          (error) => {
+            handleError(
+              2,
+              ai,
+              error
+            );
+          };
+
+        /*
+         * Start all four workers.
+         *
+         * These execute independently
+         * and concurrently.
+         */
 
         colour.postMessage({
           pixels
@@ -805,30 +1015,4 @@ export default function App() {
           </div>
         </section>
 
-        <section className="card border-0 shadow-sm mt-4">
-          <div className="card-header bg-dark text-white">
-            <h2 className="h5 mb-0">
-              Sequential vs Parallel Performance
-            </h2>
-          </div>
-
-          <div className="card-body p-0">
-            <ComparisonTable
-              sequential={
-                sequential
-              }
-              parallel={
-                parallel
-              }
-            />
-          </div>
-        </section>
-      </main>
-
-      <footer className="text-center text-secondary small py-4">
-        Parallel AI-Based Colour Palette
-        Extraction and Image Analysis
-      </footer>
-    </div>
-  );
-          }
+        <section className="card border-0 shad
