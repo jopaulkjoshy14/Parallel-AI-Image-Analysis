@@ -1,6 +1,7 @@
 import {
   pipeline,
-  env
+  env,
+  RawImage
 } from "@huggingface/transformers";
 
 env.allowRemoteModels = false;
@@ -38,19 +39,35 @@ self.onmessage = async (event) => {
     height
   } = event.data;
 
-  const start = performance.now();
+  const start =
+    performance.now();
 
   try {
     const model =
       await loadClassifier();
 
+    /*
+     * Convert the RGBA pixel buffer
+     * into a Transformers.js RawImage.
+     *
+     * 4 = RGBA channels.
+     */
+    const image =
+      new RawImage(
+        new Uint8ClampedArray(rgba),
+        width,
+        height,
+        4
+      );
+
     const output =
-      await model(imageData, {
+      await model(image, {
         top_k: 5
       });
 
     const duration =
-      performance.now() - start;
+      performance.now() -
+      start;
 
     self.postMessage({
       type: "complete",
@@ -58,9 +75,16 @@ self.onmessage = async (event) => {
       duration
     });
   } catch (error) {
+    console.error(
+      "AI worker error:",
+      error
+    );
+
     self.postMessage({
       type: "error",
-      error: error.message
+      error:
+        error.message ||
+        String(error)
     });
   }
 };
