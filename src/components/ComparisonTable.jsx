@@ -1,131 +1,401 @@
 import React from "react";
 
-function value(value) {
-  return value === null ||
+function formatTime(value) {
+  if (
+    value === null ||
     value === undefined
-    ? "—"
-    : value;
+  ) {
+    return "—";
+  }
+
+  return `${Number(value).toFixed(2)} ms`;
+}
+
+function formatSpeedup(value) {
+  if (
+    value === null ||
+    value === undefined
+  ) {
+    return "—";
+  }
+
+  return `${Number(value).toFixed(2)}×`;
+}
+
+function formatEfficiency(value) {
+  if (
+    value === null ||
+    value === undefined
+  ) {
+    return "—";
+  }
+
+  /*
+   * calculateEfficiency() returns a fraction.
+   * Example: 0.82 → 82.0%
+   */
+  return `${(
+    Number(value) * 100
+  ).toFixed(1)}%`;
+}
+
+function getDifference(
+  sequential,
+  parallel
+) {
+  if (
+    sequential === null ||
+    sequential === undefined ||
+    parallel === null ||
+    parallel === undefined ||
+    sequential === 0
+  ) {
+    return null;
+  }
+
+  return (
+    ((sequential - parallel) /
+      sequential) *
+    100
+  );
+}
+
+function MetricRow({
+  label,
+  sequential,
+  parallel,
+  highlight = false
+}) {
+  const improvement =
+    getDifference(
+      sequential,
+      parallel
+    );
+
+  return (
+    <tr
+      className={
+        highlight
+          ? "comparison-highlight"
+          : ""
+      }
+    >
+      <td>
+        <div className="metric-name">
+          {label}
+        </div>
+
+        {improvement !== null &&
+          improvement > 0 && (
+            <span className="metric-improvement">
+              {improvement.toFixed(1)}% faster
+            </span>
+          )}
+      </td>
+
+      <td>
+        <span className="comparison-value sequential-value">
+          {formatTime(sequential)}
+        </span>
+      </td>
+
+      <td>
+        <span className="comparison-value parallel-value">
+          {formatTime(parallel)}
+        </span>
+      </td>
+    </tr>
+  );
 }
 
 export default function ComparisonTable({
   sequential,
   parallel
 }) {
+  const hasBenchmark =
+    sequential.totalTime !== null &&
+    sequential.totalTime !== undefined &&
+    parallel.totalTime !== null &&
+    parallel.totalTime !== undefined;
+
   return (
-    <div className="table-responsive">
-      <table className="table table-bordered align-middle performance-table mb-0">
-        <thead className="table-dark">
-          <tr>
-            <th>Metric</th>
-            <th>Sequential</th>
-            <th>Parallel</th>
-          </tr>
-        </thead>
+    <div className="comparison-wrapper">
 
-        <tbody>
-          <tr>
-            <td>Total execution time</td>
-            <td>
-              {value(
+      {/* =====================================================
+          PERFORMANCE SUMMARY
+      ===================================================== */}
+
+      <div className="comparison-summary">
+
+        <div className="comparison-summary-card">
+
+          <span>
+            SEQUENTIAL
+          </span>
+
+          <strong>
+            {formatTime(
+              sequential.totalTime
+            )}
+          </strong>
+
+          <small>
+            Single execution path
+          </small>
+
+        </div>
+
+
+        <div className="comparison-vs">
+          VS
+        </div>
+
+
+        <div className="comparison-summary-card parallel-summary">
+
+          <span>
+            PARALLEL
+          </span>
+
+          <strong>
+            {formatTime(
+              parallel.totalTime
+            )}
+          </strong>
+
+          <small>
+            {parallel.workerCount || 4}
+            {" "}
+            concurrent workers
+          </small>
+
+        </div>
+
+
+        <div className="comparison-summary-card performance-summary">
+
+          <span>
+            SPEEDUP
+          </span>
+
+          <strong>
+            {formatSpeedup(
+              parallel.speedup
+            )}
+          </strong>
+
+          <small>
+            Overall acceleration
+          </small>
+
+        </div>
+
+      </div>
+
+      {/* =====================================================
+          TABLE
+      ===================================================== */}
+
+      <div className="table-responsive">
+
+        <table className="comparison-table">
+
+          <thead>
+            <tr>
+
+              <th>
+                <span>
+                  Metric
+                </span>
+              </th>
+
+              <th>
+                <span className="table-column-label sequential-label">
+                  Sequential
+                </span>
+              </th>
+
+              <th>
+                <span className="table-column-label parallel-label">
+                  Parallel
+                </span>
+              </th>
+
+            </tr>
+          </thead>
+
+          <tbody>
+
+            <MetricRow
+              label="Total execution time"
+              sequential={
                 sequential.totalTime
-              )}
-            </td>
-            <td>
-              {value(
+              }
+              parallel={
                 parallel.totalTime
-              )}
-            </td>
-          </tr>
+              }
+              highlight
+            />
 
-          <tr>
-            <td>K-Means</td>
-            <td>
-              {value(
+            <MetricRow
+              label="K-Means colour extraction"
+              sequential={
                 sequential.colourTime
-              )}
-            </td>
-            <td>
-              {value(
+              }
+              parallel={
                 parallel.colourTime
-              )}
-            </td>
-          </tr>
+              }
+            />
 
-          <tr>
-            <td>AI classification</td>
-            <td>
-              {value(
+            <MetricRow
+              label="AI classification"
+              sequential={
                 sequential.aiTime
-              )}
-            </td>
-            <td>
-              {value(
+              }
+              parallel={
                 parallel.aiTime
-              )}
-            </td>
-          </tr>
+              }
+            />
 
-          <tr>
-            <td>Histogram</td>
-            <td>
-              {value(
+            <MetricRow
+              label="RGB histogram"
+              sequential={
                 sequential.histogramTime
-              )}
-            </td>
-            <td>
-              {value(
+              }
+              parallel={
                 parallel.histogramTime
-              )}
-            </td>
-          </tr>
+              }
+            />
 
-          <tr>
-            <td>Image statistics</td>
-            <td>
-              {value(
+            <MetricRow
+              label="Image statistics"
+              sequential={
                 sequential.statisticsTime
-              )}
-            </td>
-            <td>
-              {value(
+              }
+              parallel={
                 parallel.statisticsTime
-              )}
-            </td>
-          </tr>
+              }
+            />
 
-          <tr>
-            <td>Worker count</td>
-            <td>1</td>
-            <td>
-              {parallel.workerCount}
-            </td>
-          </tr>
+            {/* Worker count */}
 
-          <tr>
-            <td>Speedup</td>
-            <td>1.00×</td>
-            <td>
-              {parallel.speedup
-                ? `${parallel.speedup.toFixed(
-                    2
-                  )}×`
-                : "—"}
-            </td>
-          </tr>
+            <tr>
+              <td>
+                <div className="metric-name">
+                  Worker count
+                </div>
+              </td>
 
-          <tr>
-            <td>Parallel efficiency</td>
-            <td>—</td>
-            <td>
-              {parallel.efficiency
-                ? `${parallel.efficiency.toFixed(
-                    2
-                  )}%`
-                : "—"}
-            </td>
-          </tr>
-        </tbody>
-      </table>
+              <td>
+                <span className="comparison-value">
+                  1
+                </span>
+              </td>
+
+              <td>
+                <span className="comparison-value parallel-value">
+                  {parallel.workerCount || 4}
+                </span>
+              </td>
+            </tr>
+
+            {/* Speedup */}
+
+            <tr className="comparison-highlight">
+              <td>
+                <div className="metric-name">
+                  Speedup
+                </div>
+
+                <span className="metric-description">
+                  Sequential ÷ Parallel
+                </span>
+              </td>
+
+              <td>
+                <span className="comparison-value">
+                  1.00×
+                </span>
+              </td>
+
+              <td>
+                <span className="comparison-value performance-value">
+                  {formatSpeedup(
+                    parallel.speedup
+                  )}
+                </span>
+              </td>
+            </tr>
+
+            {/* Efficiency */}
+
+            <tr>
+              <td>
+                <div className="metric-name">
+                  Parallel efficiency
+                </div>
+
+                <span className="metric-description">
+                  Speedup ÷ worker count
+                </span>
+              </td>
+
+              <td>
+                <span className="comparison-value">
+                  —
+                </span>
+              </td>
+
+              <td>
+                <span className="comparison-value performance-value">
+                  {formatEfficiency(
+                    parallel.efficiency
+                  )}
+                </span>
+              </td>
+            </tr>
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+      {/* =====================================================
+          BENCHMARK NOTE
+      ===================================================== */}
+
+      <div className="comparison-footer">
+
+        <div className="comparison-footer-icon">
+          i
+        </div>
+
+        <div>
+
+          <strong>
+            Benchmark interpretation
+          </strong>
+
+          <p>
+            Parallel execution distributes
+            independent workloads across
+            Web Workers. Speedup indicates
+            overall acceleration compared
+            with the sequential execution.
+          </p>
+
+        </div>
+
+      </div>
+
+      {!hasBenchmark && (
+        <div className="comparison-awaiting">
+          Run the analysis to generate
+          benchmark results.
+        </div>
+      )}
+
     </div>
   );
 }

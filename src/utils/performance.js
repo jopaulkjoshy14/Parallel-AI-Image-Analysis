@@ -18,8 +18,7 @@ export function calculateEfficiency(
   }
 
   return (
-    (speedup / workerCount) *
-    100
+    (speedup / workerCount)
   );
 }
 

@@ -228,12 +228,6 @@ export default function App() {
     resetResults();
 
     try {
-      /*
-       * -------------------------------------------------
-       * Prepare image data
-       * -------------------------------------------------
-       */
-
       const processed =
         await loadImageData(
           imageFile
@@ -255,14 +249,6 @@ export default function App() {
           height
         );
 
-      /*
-       * -------------------------------------------------
-       * STEP 1
-       *
-       * Run the complete sequential experiment first.
-       * -------------------------------------------------
-       */
-
       const sequentialTime =
         await runSequential(
           data,
@@ -271,15 +257,6 @@ export default function App() {
           height,
           imageData
         );
-
-      /*
-       * -------------------------------------------------
-       * STEP 2
-       *
-       * Only after sequential execution has completed,
-       * start the parallel experiment.
-       * -------------------------------------------------
-       */
 
       await runParallel(
         data,
@@ -335,10 +312,6 @@ export default function App() {
           (event) => {
             const message =
               event.data;
-
-            /*
-             * Sequential processing step
-             */
 
             if (
               message.type ===
@@ -401,10 +374,6 @@ export default function App() {
               );
             }
 
-            /*
-             * Sequential processing complete
-             */
-
             if (
               message.type ===
               "complete"
@@ -428,10 +397,6 @@ export default function App() {
                 message.totalTime
               );
             }
-
-            /*
-             * Sequential error
-             */
 
             if (
               message.type ===
@@ -487,7 +452,6 @@ export default function App() {
           performance.now();
 
         let completed = 0;
-
         let failed = false;
 
         const handleComplete =
@@ -501,12 +465,6 @@ export default function App() {
               const totalTime =
                 performance.now() -
                 start;
-
-              /*
-               * Use the actual sequential
-               * benchmark value passed into
-               * this function.
-               */
 
               const speedup =
                 calculateSpeedup(
@@ -570,10 +528,6 @@ export default function App() {
             );
           };
 
-        /*
-         * Create workers
-         */
-
         const colour =
           new Worker(
             new URL(
@@ -630,10 +584,6 @@ export default function App() {
         aiWorker.current =
           ai;
 
-        /*
-         * Mark workers as running
-         */
-
         updateWorker(
           1,
           {
@@ -665,10 +615,6 @@ export default function App() {
             progress: 10
           }
         );
-
-        /*
-         * K-Means worker
-         */
 
         colour.onmessage =
           (event) => {
@@ -717,10 +663,6 @@ export default function App() {
             }
           };
 
-        /*
-         * Histogram worker
-         */
-
         histogram.onmessage =
           (event) => {
             const message =
@@ -767,10 +709,6 @@ export default function App() {
               );
             }
           };
-
-        /*
-         * Statistics worker
-         */
 
         statistics.onmessage =
           (event) => {
@@ -819,10 +757,6 @@ export default function App() {
             }
           };
 
-        /*
-         * AI worker
-         */
-
         ai.onmessage =
           (event) => {
             const message =
@@ -870,10 +804,6 @@ export default function App() {
             }
           };
 
-        /*
-         * Worker runtime errors
-         */
-
         colour.onerror =
           (error) => {
             handleError(
@@ -910,13 +840,6 @@ export default function App() {
             );
           };
 
-        /*
-         * Start all four workers.
-         *
-         * These execute independently
-         * and concurrently.
-         */
-
         colour.postMessage({
           pixels
         });
@@ -943,47 +866,126 @@ export default function App() {
   }
 
   return (
-    <div className="min-vh-100">
-      <header className="app-header py-4">
-        <div className="container">
-          <h1 className="h3 mb-1">
-            Parallel AI-Based Image Analysis
-          </h1>
+    <div className="app-shell">
 
-          <p className="mb-0 text-light opacity-75">
-            Colour palette extraction,
-            AI classification and
-            parallel-performance analysis
-          </p>
+      {/* =====================================================
+          HEADER
+      ===================================================== */}
+
+      <header className="app-header">
+        <div className="container app-header-inner">
+
+          <div>
+            <div className="app-eyebrow">
+              PARALLEL COMPUTING • AI IMAGE ANALYSIS
+            </div>
+
+            <h1 className="app-title">
+              Parallel AI-Based
+              <span> Image Analysis</span>
+            </h1>
+
+            <p className="app-subtitle">
+              Analyse images using sequential and
+              concurrent Web Worker execution,
+              then measure the performance difference.
+            </p>
+          </div>
+
+          <div
+            className={`system-status ${
+              running
+                ? "system-status-running"
+                : "system-status-ready"
+            }`}
+          >
+            <span className="status-dot" />
+
+            {running
+              ? "Processing"
+              : "System Ready"}
+          </div>
+
         </div>
       </header>
 
-      <main className="container py-4">
-        <section className="mb-4">
-          <ImageUploader
-            onImageSelected={
-              handleImageSelected
-            }
-            disabled={running}
-          />
+      {/* =====================================================
+          MAIN DASHBOARD
+      ===================================================== */}
 
-          {imageUrl && (
-            <div className="text-center mt-3">
-              <img
-                src={imageUrl}
-                alt="Uploaded preview"
-                className="image-preview shadow-sm"
-              />
+      <main className="container app-main">
 
-              <div className="small text-secondary mt-2">
-                {imageFile.name}
-              </div>
+        {/* =================================================
+            UPLOAD SECTION
+        ================================================= */}
+
+        <section className="dashboard-section upload-section">
+
+          <div className="section-heading">
+            <div>
+              <span className="section-kicker">
+                STEP 01
+              </span>
+
+              <h2>
+                Select an image
+              </h2>
+
+              <p>
+                Upload an image to begin the
+                sequential and parallel analysis.
+              </p>
             </div>
-          )}
+          </div>
 
-          <div className="text-center mt-3">
+          <div className="upload-card">
+
+            <ImageUploader
+              onImageSelected={
+                handleImageSelected
+              }
+              disabled={running}
+            />
+
+            {imageUrl && (
+              <div className="preview-area">
+
+                <div className="preview-image-wrapper">
+                  <img
+                    src={imageUrl}
+                    alt="Uploaded preview"
+                    className="image-preview"
+                  />
+                </div>
+
+                <div className="preview-meta">
+
+                  <div>
+                    <span className="preview-label">
+                      SELECTED IMAGE
+                    </span>
+
+                    <div className="preview-name">
+                      {imageFile.name}
+                    </div>
+                  </div>
+
+                  <div className="preview-ready">
+                    <span className="status-dot" />
+                    Ready for analysis
+                  </div>
+
+                </div>
+
+              </div>
+            )}
+
+          </div>
+
+          <div className="analysis-action">
+
             <button
-              className="btn btn-primary btn-lg px-5"
+              className="analysis-button"
               disabled={
                 !imageFile ||
                 running
@@ -992,39 +994,118 @@ export default function App() {
                 runAnalysis
               }
             >
-              {running
-                ? "Processing..."
-                : "Run Analysis"}
+              <span className="analysis-button-icon">
+                {running ? "◌" : "▶"}
+              </span>
+
+              <span>
+                {running
+                  ? "Analysis in progress..."
+                  : "Run Complete Analysis"}
+              </span>
+
+              {!running && (
+                <span className="analysis-button-arrow">
+                  →
+                </span>
+              )}
             </button>
+
+            {!imageFile && (
+              <p className="action-hint">
+                Upload an image first to enable analysis.
+              </p>
+            )}
+
           </div>
+
         </section>
 
-        <section className="row g-4">
-          <div className="col-12 col-xl-6">
-            <SequentialPanel
-              data={
-                sequential
-              }
-            />
+        {/* =================================================
+            PROCESSING COMPARISON
+        ================================================= */}
+
+        <section className="dashboard-section">
+
+          <div className="section-heading section-heading-row">
+
+            <div>
+              <span className="section-kicker">
+                STEP 02
+              </span>
+
+              <h2>
+                Processing comparison
+              </h2>
+
+              <p>
+                Compare single-threaded execution with
+                four concurrent Web Workers.
+              </p>
+            </div>
+
+            <div className="worker-count-badge">
+              <strong>4</strong>
+              <span>
+                parallel workers
+              </span>
+            </div>
+
           </div>
 
-          <div className="col-12 col-xl-6">
-            <ParallelPanel
-              data={
-                parallel
-              }
-            />
+          <div className="processing-grid">
+
+            <div className="processing-column">
+              <SequentialPanel
+                data={
+                  sequential
+                }
+              />
+            </div>
+
+            <div className="processing-divider">
+              <span>VS</span>
+            </div>
+
+            <div className="processing-column">
+              <ParallelPanel
+                data={
+                  parallel
+                }
+              />
+            </div>
+
           </div>
+
         </section>
 
-        <section className="card border-0 shadow-sm mt-4">
-          <div className="card-header bg-dark text-white">
-            <h2 className="h5 mb-0">
-              Sequential vs Parallel Performance
-            </h2>
+        {/* =================================================
+            PERFORMANCE
+        ================================================= */}
+
+        <section className="dashboard-section performance-section">
+
+          <div className="section-heading">
+
+            <div>
+              <span className="section-kicker">
+                STEP 03
+              </span>
+
+              <h2>
+                Performance analysis
+              </h2>
+
+              <p>
+                Benchmark the two execution strategies
+                and measure the benefit of parallelism.
+              </p>
+            </div>
+
           </div>
 
-          <div className="card-body p-0">
+          <div className="performance-card">
+
             <ComparisonTable
               sequential={
                 sequential
@@ -1033,14 +1114,99 @@ export default function App() {
                 parallel
               }
             />
+
           </div>
+
         </section>
+
+        {/* =================================================
+            PROJECT EXPLANATION
+        ================================================= */}
+
+        <section className="concept-strip">
+
+          <div className="concept-item">
+            <span className="concept-number">
+              01
+            </span>
+
+            <div>
+              <strong>
+                Sequential
+              </strong>
+
+              <p>
+                Tasks execute one after another
+                on a single processing flow.
+              </p>
+            </div>
+          </div>
+
+          <div className="concept-item">
+            <span className="concept-number">
+              02
+            </span>
+
+            <div>
+              <strong>
+                Parallel
+              </strong>
+
+              <p>
+                Independent analysis tasks run
+                concurrently using Web Workers.
+              </p>
+            </div>
+          </div>
+
+          <div className="concept-item">
+            <span className="concept-number">
+              03
+            </span>
+
+            <div>
+              <strong>
+                Measure
+              </strong>
+
+              <p>
+                Execution time, speedup and efficiency
+                quantify the performance difference.
+              </p>
+            </div>
+          </div>
+
+        </section>
+
       </main>
 
-      <footer className="text-center text-secondary small py-4">
-        Parallel AI-Based Colour Palette
-        Extraction and Image Analysis
+      {/* =====================================================
+          FOOTER
+      ===================================================== */}
+
+      <footer className="app-footer">
+
+        <div className="container footer-inner">
+
+          <div>
+            <strong>
+              Parallel AI-Based Image Analysis
+            </strong>
+
+            <span>
+              Browser-based parallel image processing
+              and performance analysis.
+            </span>
+          </div>
+
+          <div className="footer-tech">
+            React • Web Workers • AI • Parallel Computing
+          </div>
+
+        </div>
+
       </footer>
+
     </div>
   );
 }
