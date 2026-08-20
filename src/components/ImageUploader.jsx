@@ -10,21 +10,15 @@ export default function ImageUploader({
   const inputRef =
     useRef(null);
 
-  const [
-    dragging,
-    setDragging
-  ] = useState(false);
+  const [dragging, setDragging] =
+    useState(false);
 
-  function handleFile(file) {
-    if (!file || disabled) {
-      return;
-    }
+  const [error, setError] =
+    useState("");
 
-    if (!file.type.startsWith("image/")) {
-      alert(
-        "Please select a valid image file."
-      );
-      return;
+  function validateFile(file) {
+    if (!file) {
+      return false;
     }
 
     const allowedTypes = [
@@ -33,30 +27,57 @@ export default function ImageUploader({
       "image/webp"
     ];
 
-    if (!allowedTypes.includes(file.type)) {
-      alert(
+    if (
+      !allowedTypes.includes(
+        file.type
+      )
+    ) {
+      setError(
         "Please select a PNG, JPG or WebP image."
       );
+
+      return false;
+    }
+
+    setError("");
+
+    return true;
+  }
+
+  function handleFile(file) {
+    if (disabled) {
+      return;
+    }
+
+    if (!validateFile(file)) {
       return;
     }
 
     onImageSelected(file);
+  }
+
+  function handleInputChange(event) {
+    const file =
+      event.target.files?.[0];
+
+    handleFile(file);
 
     /*
-     * Reset the input so selecting the same
-     * image again still triggers onChange.
+     * Allows the same file to be
+     * selected again later.
      */
-    if (inputRef.current) {
-      inputRef.current.value = "";
-    }
+
+    event.target.value = "";
   }
 
   function handleDragOver(event) {
     event.preventDefault();
 
-    if (!disabled) {
-      setDragging(true);
+    if (disabled) {
+      return;
     }
+
+    setDragging(true);
   }
 
   function handleDragLeave(event) {
@@ -88,134 +109,122 @@ export default function ImageUploader({
     inputRef.current?.click();
   }
 
-  function handleKeyDown(event) {
-    if (
-      event.key === "Enter" ||
-      event.key === " "
-    ) {
-      event.preventDefault();
-      openFilePicker();
-    }
-  }
-
   return (
-    <div
-      className={`drop-zone ${
-        dragging
-          ? "drop-zone-active"
-          : ""
-      } ${
-        disabled
-          ? "drop-zone-disabled"
-          : ""
-      }`}
-      onClick={
-        openFilePicker
-      }
-      onDragOver={
-        handleDragOver
-      }
-      onDragEnter={
-        handleDragOver
-      }
-      onDragLeave={
-        handleDragLeave
-      }
-      onDrop={
-        handleDrop
-      }
-      onKeyDown={
-        handleKeyDown
-      }
-      role="button"
-      tabIndex={disabled ? -1 : 0}
-      aria-label="Upload an image"
-      aria-disabled={disabled}
-    >
+    <div>
 
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/png,image/jpeg,image/webp"
-        className="d-none"
-        disabled={disabled}
-        onChange={(event) =>
-          handleFile(
-            event.target.files?.[0]
-          )
+      <div
+        className={`upload-zone ${
+          dragging
+            ? "upload-zone-dragging"
+            : ""
+        } ${
+          disabled
+            ? "upload-zone-disabled"
+            : ""
+        }`}
+        onClick={
+          openFilePicker
         }
-      />
+        onDragOver={
+          handleDragOver
+        }
+        onDragLeave={
+          handleDragLeave
+        }
+        onDrop={
+          handleDrop
+        }
+        role="button"
+        tabIndex={disabled ? -1 : 0}
+        onKeyDown={(event) => {
+          if (
+            event.key ===
+              "Enter" ||
+            event.key ===
+              " "
+          ) {
+            event.preventDefault();
+            openFilePicker();
+          }
+        }}
+      >
 
-      {/* Upload icon */}
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          className="d-none"
+          disabled={disabled}
+          onChange={
+            handleInputChange
+          }
+        />
 
-      <div className="upload-icon">
-        <svg
-          viewBox="0 0 24 24"
-          width="30"
-          height="30"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path
-            d="M12 16V4"
-          />
+        {/* ================================================
+            Upload icon
+        ================================================= */}
 
-          <path
-            d="m7 9 5-5 5 5"
-          />
+        <div className="upload-icon">
 
-          <path
-            d="M4 20h16"
-          />
-        </svg>
+          <svg
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path
+              d="M12 16V4"
+            />
+
+            <path
+              d="M7 9l5-5 5 5"
+            />
+
+            <path
+              d="M5 20h14"
+            />
+          </svg>
+
+        </div>
+
+        {/* ================================================
+            Upload text
+        ================================================= */}
+
+        <div className="upload-content">
+
+          <strong>
+            {dragging
+              ? "Drop your image here"
+              : "Upload an image"}
+          </strong>
+
+          <span>
+            Drag & drop or click to browse
+          </span>
+
+          <small>
+            PNG · JPG · WebP
+          </small>
+
+        </div>
+
+        <div className="upload-action">
+          Browse files
+        </div>
+
       </div>
 
-      {/* Main message */}
+      {/* ================================================
+          Validation error
+      ================================================= */}
 
-      <div className="upload-content">
+      {error && (
+        <div className="upload-error">
+          <span>!</span>
 
-        <strong className="upload-title">
-          {dragging
-            ? "Drop your image here"
-            : "Upload an image"}
-        </strong>
-
-        <p className="upload-description">
-          Drag and drop your image here,
-          or click to browse your device.
-        </p>
-
-      </div>
-
-      {/* Supported formats */}
-
-      <div className="upload-formats">
-
-        <span>
-          JPG
-        </span>
-
-        <span>
-          PNG
-        </span>
-
-        <span>
-          WebP
-        </span>
-
-      </div>
-
-      {/* Bottom hint */}
-
-      <div className="upload-hint">
-        Your image stays in the browser
-        during analysis.
-      </div>
+          {error}
+        </div>
+      )}
 
     </div>
   );
-          }
+}
