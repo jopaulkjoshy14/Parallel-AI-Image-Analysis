@@ -2637,3 +2637,522 @@ footer {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* =========================================================
+   UI POLISH — DASHBOARD CONTENT HIERARCHY
+   Targeted overrides for:
+   1. Selected image / analysis action
+   2. Processing comparison heading
+   3. Performance analysis heading
+   4. Sequential / Parallel / Measure strip
+   ========================================================= */
+
+
+/* ---------------------------------------------------------
+   1. SELECTED IMAGE + ANALYSIS ACTION
+   --------------------------------------------------------- */
+
+.preview-meta {
+  gap: 16px;
+  justify-content: center;
+}
+
+.preview-label {
+  margin-bottom: 7px;
+
+  font-size: 0.64rem;
+  font-weight: 800;
+
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+
+  color: var(--text-muted);
+}
+
+.preview-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+
+  line-height: 1.4;
+
+  color: var(--text-primary);
+}
+
+.preview-ready {
+  gap: 8px;
+
+  padding: 8px 12px;
+
+  border:
+    1px solid
+    rgba(52, 211, 153, 0.2);
+
+  border-radius: 10px;
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(52, 211, 153, 0.08),
+      rgba(52, 211, 153, 0.035)
+    );
+
+  color: var(--success);
+
+  font-size: 0.74rem;
+  font-weight: 700;
+
+  box-shadow:
+    inset 0 1px 0
+    rgba(255, 255, 255, 0.025);
+}
+
+.preview-ready .status-dot {
+  width: 7px;
+  height: 7px;
+
+  box-shadow:
+    0 0 0 3px
+    rgba(52, 211, 153, 0.08);
+}
+
+
+/* ---------------------------------------------------------
+   ANALYSIS ACTION
+   --------------------------------------------------------- */
+
+.analysis-action {
+  margin-top: 18px;
+
+  padding-top: 2px;
+}
+
+.analysis-button {
+  min-width: 245px;
+
+  padding:
+    13px
+    20px;
+
+  border-radius: 12px;
+
+  font-size: 0.84rem;
+  font-weight: 800;
+
+  letter-spacing: 0.005em;
+
+  box-shadow:
+    0 10px 28px
+    rgba(45, 212, 191, 0.14);
+}
+
+.analysis-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+
+  box-shadow:
+    0 15px 36px
+    rgba(45, 212, 191, 0.21);
+}
+
+.analysis-button-icon {
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+
+  width: 18px;
+  height: 18px;
+
+  font-size: 0.82rem;
+}
+
+.analysis-button-arrow {
+  margin-left: 3px;
+
+  font-size: 1rem;
+}
+
+.action-hint {
+  margin-top: 8px;
+
+  font-size: 0.7rem;
+}
+
+
+/* ---------------------------------------------------------
+   2. STEP 02 — PROCESSING COMPARISON
+   --------------------------------------------------------- */
+
+.processing-grid {
+  margin-top: 4px;
+}
+
+.section-heading-row {
+  align-items: center;
+}
+
+.section-heading-row .section-heading {
+  margin-bottom: 0;
+}
+
+
+/* Worker count badge */
+
+.worker-count-badge {
+  flex-shrink: 0;
+
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+
+  gap: 8px;
+
+  min-height: 38px;
+
+  padding:
+    8px
+    13px;
+
+  border:
+    1px
+    solid
+    rgba(96, 165, 250, 0.18);
+
+  border-radius: 10px;
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(96, 165, 250, 0.09),
+      rgba(96, 165, 250, 0.035)
+    );
+
+  box-shadow:
+    inset 0 1px 0
+    rgba(255, 255, 255, 0.025);
+}
+
+.worker-count-badge strong {
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+
+  min-width: 20px;
+
+  color: var(--blue);
+
+  font-size: 1rem;
+  font-weight: 800;
+
+  line-height: 1;
+}
+
+.worker-count-badge span {
+  color: var(--text-secondary);
+
+  font-size: 0.7rem;
+  font-weight: 650;
+
+  line-height: 1;
+}
+
+
+/* ---------------------------------------------------------
+   3. STEP 03 — PERFORMANCE ANALYSIS
+   --------------------------------------------------------- */
+
+.performance-section {
+  margin-bottom: 58px;
+}
+
+.performance-section .section-heading {
+  margin-bottom: 18px;
+}
+
+.performance-section .section-heading p {
+  margin-top: 7px;
+}
+
+.performance-card {
+  border-radius: var(--radius-lg);
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(15, 29, 49, 0.94),
+      rgba(10, 22, 38, 0.92)
+    );
+
+  box-shadow:
+    0 20px 50px
+    rgba(0, 0, 0, 0.24);
+}
+
+
+/* ---------------------------------------------------------
+   4. PROJECT CONCEPT STRIP
+   --------------------------------------------------------- */
+
+.concept-strip {
+  position: relative;
+
+  margin-top: 0;
+  margin-bottom: 54px;
+
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+
+  gap: 0;
+
+  border:
+    1px
+    solid
+    rgba(148, 163, 184, 0.12);
+
+  border-radius: var(--radius-lg);
+
+  background:
+    rgba(148, 163, 184, 0.08);
+
+  box-shadow:
+    0 18px 45px
+    rgba(0, 0, 0, 0.18);
+
+  overflow: hidden;
+}
+
+
+/* Individual concept cards */
+
+.concept-item {
+  position: relative;
+
+  min-height: 145px;
+
+  display: flex;
+
+  align-items: flex-start;
+
+  gap: 15px;
+
+  padding:
+    22px
+    22px;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(14, 30, 50, 0.94),
+      rgba(10, 23, 40, 0.9)
+    );
+
+  transition:
+    background var(--transition),
+    transform var(--transition);
+}
+
+
+/* Separators */
+
+.concept-item:not(:last-child)::after {
+  content: "";
+
+  position: absolute;
+
+  top: 22px;
+  right: 0;
+  bottom: 22px;
+
+  width: 1px;
+
+  background:
+    linear-gradient(
+      180deg,
+      transparent,
+      var(--border-strong),
+      transparent
+    );
+}
+
+
+/* Hover */
+
+.concept-item:hover {
+  background:
+    linear-gradient(
+      145deg,
+      rgba(18, 38, 61, 0.98),
+      rgba(11, 27, 46, 0.94)
+    );
+}
+
+
+/* Number */
+
+.concept-number {
+  flex-shrink: 0;
+
+  width: 32px;
+  height: 32px;
+
+  border:
+    1px
+    solid
+    rgba(94, 234, 212, 0.2);
+
+  border-radius: 9px;
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(45, 212, 191, 0.12),
+      rgba(96, 165, 250, 0.06)
+    );
+
+  color: var(--accent);
+
+  font-size: 0.65rem;
+  font-weight: 850;
+
+  letter-spacing: 0.03em;
+}
+
+
+/* Concept title */
+
+.concept-item strong {
+  margin-top: 1px;
+  margin-bottom: 5px;
+
+  color: var(--text-primary);
+
+  font-size: 0.8rem;
+  font-weight: 800;
+
+  letter-spacing: 0.02em;
+
+  text-transform: uppercase;
+}
+
+
+/* Concept description */
+
+.concept-item p {
+  max-width: 250px;
+
+  color: var(--text-muted);
+
+  font-size: 0.72rem;
+
+  line-height: 1.55;
+}
+
+
+/* ---------------------------------------------------------
+   MOBILE ADJUSTMENTS
+   --------------------------------------------------------- */
+
+@media (max-width: 991.98px) {
+
+  .section-heading-row {
+    align-items: flex-start;
+  }
+
+  .worker-count-badge {
+    margin-top: 4px;
+  }
+
+  .concept-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .concept-item {
+    min-height: auto;
+  }
+
+  .concept-item:not(:last-child)::after {
+    top: auto;
+    right: 22px;
+    bottom: 0;
+    left: 22px;
+
+    width: auto;
+    height: 1px;
+
+    background:
+      linear-gradient(
+        90deg,
+        transparent,
+        var(--border-strong),
+        transparent
+      );
+  }
+
+}
+
+
+/* ---------------------------------------------------------
+   SMALL MOBILE
+   --------------------------------------------------------- */
+
+@media (max-width: 767.98px) {
+
+  .preview-meta {
+    gap: 14px;
+  }
+
+  .preview-name {
+    font-size: 0.95rem;
+  }
+
+  .preview-ready {
+    width: fit-content;
+  }
+
+  .analysis-action {
+    margin-top: 16px;
+  }
+
+  .analysis-button {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .performance-section {
+    margin-bottom: 46px;
+  }
+
+  .concept-strip {
+    margin-bottom: 42px;
+  }
+
+  .concept-item {
+    padding: 18px;
+  }
+
+}
+
+
+/* ---------------------------------------------------------
+   VERY SMALL MOBILE
+   --------------------------------------------------------- */
+
+@media (max-width: 420px) {
+
+  .worker-count-badge {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .concept-item {
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .concept-number {
+    width: 30px;
+    height: 30px;
+  }
+
+}
