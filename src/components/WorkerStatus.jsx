@@ -1,86 +1,183 @@
 import React from "react";
 
-function statusClass(status) {
+function getStatusLabel(status) {
   if (status === "running") {
-    return "status-running";
+    return "RUNNING";
   }
 
   if (status === "complete") {
-    return "status-complete";
+    return "COMPLETE";
   }
 
   if (status === "error") {
-    return "status-error";
+    return "ERROR";
   }
 
-  return "status-idle";
+  return "IDLE";
+}
+
+function getStatusClass(status) {
+  if (status === "running") {
+    return "worker-running";
+  }
+
+  if (status === "complete") {
+    return "worker-complete";
+  }
+
+  if (status === "error") {
+    return "worker-error";
+  }
+
+  return "worker-idle";
+}
+
+function getWorkerNumber(id) {
+  return String(id).padStart(2, "0");
 }
 
 export default function WorkerStatus({
-  workers
+  workers = []
 }) {
   return (
-    <div className="row g-2">
-      {workers.map((worker) => (
-        <div
-          className="col-12 col-md-6"
-          key={worker.id}
-        >
+    <div className="worker-grid">
+
+      {workers.map((worker) => {
+
+        const statusClass =
+          getStatusClass(
+            worker.status
+          );
+
+        const statusLabel =
+          getStatusLabel(
+            worker.status
+          );
+
+        const progress =
+          Math.min(
+            Math.max(
+              Number(worker.progress) || 0,
+              0
+            ),
+            100
+          );
+
+        return (
           <div
-            className={`worker-card ${
-              worker.status === "running"
-                ? "active"
-                : worker.status ===
-                  "complete"
-                ? "complete"
-                : worker.status ===
-                  "error"
-                ? "error"
-                : ""
-            }`}
+            className={`worker-card ${statusClass}`}
+            key={worker.id}
           >
-            <div className="d-flex justify-content-between">
+
+            {/* =================================================
+                WORKER HEADER
+            ================================================= */}
+
+            <div className="worker-card-header">
+
+              <div className="worker-identity">
+
+                <div className="worker-number">
+                  {getWorkerNumber(
+                    worker.id
+                  )}
+                </div>
+
+                <div>
+                  <strong>
+                    {worker.name}
+                  </strong>
+
+                  <span>
+                    Parallel worker
+                  </span>
+                </div>
+
+              </div>
+
+              <div className="worker-status-badge">
+
+                <span className="worker-status-dot" />
+
+                {statusLabel}
+
+              </div>
+
+            </div>
+
+            {/* =================================================
+                TASK
+            ================================================= */}
+
+            <div className="worker-task">
+
+              <span className="worker-task-label">
+                ASSIGNED TASK
+              </span>
+
               <strong>
-                {worker.name}
+                {worker.task}
               </strong>
 
-              <span className="small">
-                <span
-                  className={`status-dot ${statusClass(
-                    worker.status
-                  )}`}
+            </div>
+
+            {/* =================================================
+                PROGRESS
+            ================================================= */}
+
+            <div className="worker-progress-section">
+
+              <div className="worker-progress-header">
+
+                <span>
+                  Progress
+                </span>
+
+                <strong>
+                  {progress}%
+                </strong>
+
+              </div>
+
+              <div className="worker-progress-track">
+
+                <div
+                  className="worker-progress-fill"
+                  style={{
+                    width:
+                      `${progress}%`
+                  }}
                 />
 
-                {worker.status}
-              </span>
-            </div>
-
-            <div className="small text-secondary mt-1">
-              {worker.task}
-            </div>
-
-            <div className="progress worker-progress mt-2">
-              <div
-                className="progress-bar"
-                style={{
-                  width: `${worker.progress}%`
-                }}
-              />
-            </div>
-
-            {worker.duration !== null && (
-              <div className="small mt-2">
-                Time:{" "}
-                <strong>
-                  {worker.duration.toFixed(
-                    2
-                  )} ms
-                </strong>
               </div>
-            )}
+
+            </div>
+
+            {/* =================================================
+                EXECUTION TIME
+            ================================================= */}
+
+            <div className="worker-footer">
+
+              <span>
+                Execution time
+              </span>
+
+              <strong>
+                {worker.duration !== null &&
+                worker.duration !== undefined
+                  ? `${worker.duration.toFixed(
+                      2
+                    )} ms`
+                  : "—"}
+              </strong>
+
+            </div>
+
           </div>
-        </div>
-      ))}
+        );
+      })}
+
     </div>
   );
 }
