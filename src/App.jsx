@@ -934,7 +934,9 @@ export default function App() {
         });
 
         ai.postMessage({
-          imageData
+          rgba: data,
+          width,
+          height
         });
       }
     );
