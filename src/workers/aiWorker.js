@@ -33,7 +33,9 @@ async function loadClassifier() {
 
 self.onmessage = async (event) => {
   const {
-    imageData
+    rgba,
+    width,
+    height
   } = event.data;
 
   const start = performance.now();
