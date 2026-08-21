@@ -18,7 +18,7 @@ async function loadDetector() {
 
   detector = await pipeline(
     "object-detection",
-    "Xenova/yolos-tiny",
+    "onnx-community/yolov10n",
     {
       device: "wasm",
       dtype: "q8"
@@ -83,10 +83,8 @@ self.onmessage = async (event) => {
       await loadDetector();
 
     /*
-     * Transformers.js expects an image input.
-     *
      * Convert the RGBA pixel data into
-     * a RawImage object.
+     * a Transformers.js RawImage.
      *
      * 4 = RGBA channels.
      */
@@ -100,15 +98,15 @@ self.onmessage = async (event) => {
       );
 
     /*
-     * YOLOS-Tiny returns detected objects with:
+     * YOLOv10n returns object detections:
      *
      * - label
      * - score
      * - bounding box
      *
      * A low threshold is intentionally used
-     * during this experiment so that we can
-     * inspect the model's actual predictions.
+     * during this model experiment so that
+     * we can inspect the model's predictions.
      */
 
     const aiResult =
