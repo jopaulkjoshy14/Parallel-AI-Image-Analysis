@@ -111,7 +111,7 @@ self.onmessage = async (event) => {
 
     const aiResult =
       await model(image, {
-        threshold: 0.01
+        threshold: 0.40
       });
 
     const aiTime =
