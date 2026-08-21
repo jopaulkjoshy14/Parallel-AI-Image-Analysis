@@ -16,7 +16,7 @@ async function loadDetector() {
 
   detector = await pipeline(
     "object-detection",
-    "onnx-community/yolov10n",
+    "onnx-community/rtdetr_r18vd",
     {
       device: "wasm",
       dtype: "q8"
@@ -56,14 +56,15 @@ self.onmessage = async (event) => {
       );
 
     /*
-     * YOLOv10n returns object detections:
+     * RT-DETR returns object detections:
      *
      * - label
      * - score
      * - bounding box
      *
-     * Low threshold is intentional for
-     * the initial model experiment.
+     * A low threshold is intentionally used
+     * during the initial model experiment so
+     * that we can inspect the model's predictions.
      */
 
     const output =
