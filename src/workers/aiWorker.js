@@ -13,23 +13,23 @@ env.localModelPath =
 env.backends.onnx.wasm.wasmPaths =
   "/wasm/";
 
-let classifier = null;
+let detector = null;
 
-async function loadClassifier() {
-  if (classifier) {
-    return classifier;
+async function loadDetector() {
+  if (detector) {
+    return detector;
   }
 
-  classifier = await pipeline(
-    "image-classification",
-    "Xenova/mobilevit-x-small",
+  detector = await pipeline(
+    "object-detection",
+    "Xenova/detr-resnet-50",
     {
       device: "wasm",
       dtype: "q8"
     }
   );
 
-  return classifier;
+  return detector;
 }
 
 self.onmessage = async (event) => {
@@ -44,7 +44,7 @@ self.onmessage = async (event) => {
 
   try {
     const model =
-      await loadClassifier();
+      await loadDetector();
 
     /*
      * Convert the RGBA pixel buffer
@@ -62,7 +62,7 @@ self.onmessage = async (event) => {
 
     const output =
       await model(image, {
-        top_k: 5
+        threshold: 0.01
       });
 
     const duration =
