@@ -6,32 +6,26 @@ import {
 
 import { kMeans } from "../utils/kmeans";
 
-env.allowRemoteModels = false;
-env.allowLocalModels = true;
-
-env.localModelPath =
-  "/models/";
-
 env.backends.onnx.wasm.wasmPaths =
   "/wasm/";
 
-let classifier = null;
+let detector = null;
 
-async function loadClassifier() {
-  if (classifier) {
-    return classifier;
+async function loadDetector() {
+  if (detector) {
+    return detector;
   }
 
-  classifier = await pipeline(
-    "image-classification",
-    "Xenova/mobilevit-x-small",
+  detector = await pipeline(
+    "object-detection",
+    "Xenova/detr-resnet-50",
     {
       device: "wasm",
       dtype: "q8"
     }
   );
 
-  return classifier;
+  return detector;
 }
 
 self.onmessage = async (event) => {
@@ -78,7 +72,7 @@ self.onmessage = async (event) => {
     /*
      * -------------------------------------------------
      * STEP 2
-     * AI image classification
+     * AI object detection
      * -------------------------------------------------
      */
 
@@ -86,7 +80,7 @@ self.onmessage = async (event) => {
       performance.now();
 
     const model =
-      await loadClassifier();
+      await loadDetector();
 
     /*
      * Transformers.js expects an image input.
@@ -105,9 +99,21 @@ self.onmessage = async (event) => {
         4
       );
 
+    /*
+     * DETR returns detected objects with:
+     *
+     * - label
+     * - score
+     * - bounding box
+     *
+     * A low threshold is intentionally used
+     * during this experiment so that we can
+     * inspect the model's actual predictions.
+     */
+
     const aiResult =
       await model(image, {
-        top_k: 5
+        threshold: 0.01
       });
 
     const aiTime =
