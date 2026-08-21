@@ -69,7 +69,7 @@ self.onmessage = async (event) => {
 
     const output =
       await model(image, {
-        threshold: 0.01
+        threshold: 0.40
       });
 
     const duration =
