@@ -19,12 +19,24 @@ import {
   calculateEfficiency
 } from "./utils/performance";
 
+
+/* =========================================================
+   PARALLEL WORKER CONFIGURATION
+   ========================================================= */
+
+const PARALLEL_WORKER_COUNT = 2;
+
+
+/* =========================================================
+   WORKER UI STATE
+   ========================================================= */
+
 function createInitialWorkers() {
   return [
     {
       id: 1,
       name: "Worker 1",
-      task: "K-Means colour extraction",
+      task: "AI image classification",
       status: "idle",
       progress: 0,
       duration: null
@@ -32,23 +44,7 @@ function createInitialWorkers() {
     {
       id: 2,
       name: "Worker 2",
-      task: "AI image classification",
-      status: "idle",
-      progress: 0,
-      duration: null
-    },
-    {
-      id: 3,
-      name: "Worker 3",
-      task: "RGB histogram",
-      status: "idle",
-      progress: 0,
-      duration: null
-    },
-    {
-      id: 4,
-      name: "Worker 4",
-      task: "Image statistics",
+      task: "Colour + histogram + statistics",
       status: "idle",
       progress: 0,
       duration: null
@@ -56,36 +52,60 @@ function createInitialWorkers() {
   ];
 }
 
+
+/* =========================================================
+   INITIAL SEQUENTIAL STATE
+   ========================================================= */
+
 const initialSequential = {
   status: "Waiting for image",
+
   palette: [],
   ai: [],
   histogram: null,
   statistics: null,
+
   colourTime: null,
   aiTime: null,
   histogramTime: null,
   statisticsTime: null,
+
   totalTime: null
 };
+
+
+/* =========================================================
+   INITIAL PARALLEL STATE
+   ========================================================= */
 
 const initialParallel = {
   palette: [],
   ai: [],
   histogram: null,
   statistics: null,
+
   colourTime: null,
   aiTime: null,
   histogramTime: null,
   statisticsTime: null,
+
   totalTime: null,
-  workerCount: 4,
+
+  workerCount: PARALLEL_WORKER_COUNT,
+
   speedup: null,
   efficiency: null,
+
   workers: createInitialWorkers()
 };
 
+
+/* =========================================================
+   APP
+   ========================================================= */
+
 export default function App() {
+
   const [
     imageFile,
     setImageFile
@@ -115,44 +135,60 @@ export default function App() {
     setRunning
   ] = useState(false);
 
+
+  /* =======================================================
+     WORKER REFERENCES
+     ======================================================= */
+
   const sequentialWorker =
     useRef(null);
 
-  const colourWorker =
-    useRef(null);
-
-  const histogramWorker =
-    useRef(null);
-
-  const statisticsWorker =
+  const analysisWorker =
     useRef(null);
 
   const aiWorker =
     useRef(null);
 
+
+  /* =======================================================
+     CLEANUP
+     ======================================================= */
+
   useEffect(() => {
+
     return () => {
+
       [
         sequentialWorker,
-        colourWorker,
-        histogramWorker,
-        statisticsWorker,
+        analysisWorker,
         aiWorker
       ].forEach(
         (workerRef) => {
+
           workerRef.current?.terminate();
+
         }
       );
 
       if (imageUrl) {
+
         URL.revokeObjectURL(
           imageUrl
         );
+
       }
+
     };
+
   }, [imageUrl]);
 
+
+  /* =======================================================
+     RESET
+     ======================================================= */
+
   function resetResults() {
+
     setSequential(
       initialSequential
     );
@@ -160,9 +196,16 @@ export default function App() {
     setParallel(
       initialParallel
     );
+
   }
 
+
+  /* =======================================================
+     IMAGE SELECTION
+     ======================================================= */
+
   async function handleImageSelected(file) {
+
     if (running) {
       return;
     }
@@ -172,23 +215,34 @@ export default function App() {
     setImageFile(file);
 
     if (imageUrl) {
+
       URL.revokeObjectURL(
         imageUrl
       );
+
     }
 
     setImageUrl(
       URL.createObjectURL(file)
     );
+
   }
+
+
+  /* =======================================================
+     UPDATE WORKER UI
+     ======================================================= */
 
   function updateWorker(
     id,
     changes
   ) {
+
     setParallel(
       (current) => ({
+
         ...current,
+
         workers:
           current.workers.map(
             (worker) =>
@@ -199,28 +253,50 @@ export default function App() {
                   }
                 : worker
           )
+
       })
     );
+
   }
 
+
+  /* =======================================================
+     TERMINATE WORKERS
+     ======================================================= */
+
   function terminateWorkers() {
+
     [
       sequentialWorker,
-      colourWorker,
-      histogramWorker,
-      statisticsWorker,
+      analysisWorker,
       aiWorker
     ].forEach(
       (workerRef) => {
+
         workerRef.current?.terminate();
-        workerRef.current = null;
+
+        workerRef.current =
+          null;
+
       }
     );
+
   }
 
+
+  /* =======================================================
+     COMPLETE ANALYSIS
+     ======================================================= */
+
   async function runAnalysis() {
-    if (!imageFile || running) {
+
+    if (
+      !imageFile ||
+      running
+    ) {
+
       return;
+
     }
 
     setRunning(true);
@@ -228,6 +304,11 @@ export default function App() {
     resetResults();
 
     try {
+
+      /* ---------------------------------------------------
+         LOAD IMAGE
+         --------------------------------------------------- */
+
       const processed =
         await loadImageData(
           imageFile
@@ -239,15 +320,32 @@ export default function App() {
         height
       } = processed;
 
+
+      /* ---------------------------------------------------
+         SAMPLE PIXELS FOR K-MEANS
+         --------------------------------------------------- */
+
       const pixels =
         samplePixels(data);
 
+
+      /* ---------------------------------------------------
+         CREATE IMAGE DATA
+         --------------------------------------------------- */
+
       const imageData =
         new ImageData(
-          new Uint8ClampedArray(data),
+          new Uint8ClampedArray(
+            data
+          ),
           width,
           height
         );
+
+
+      /* ---------------------------------------------------
+         SEQUENTIAL BENCHMARK
+         --------------------------------------------------- */
 
       const sequentialTime =
         await runSequential(
@@ -257,6 +355,11 @@ export default function App() {
           height,
           imageData
         );
+
+
+      /* ---------------------------------------------------
+         PARALLEL BENCHMARK
+         --------------------------------------------------- */
 
       await runParallel(
         data,
@@ -268,22 +371,38 @@ export default function App() {
       );
 
     } catch (error) {
+
       console.error(error);
 
       setSequential(
         (current) => ({
+
           ...current,
+
           status:
             "Error: " +
-            (error.message ||
-              "Unknown error")
+            (
+              error.message ||
+              "Unknown error"
+            )
+
         })
       );
+
     } finally {
+
       terminateWorkers();
+
       setRunning(false);
+
     }
+
   }
+
+
+  /* =======================================================
+     SEQUENTIAL EXECUTION
+     ======================================================= */
 
   function runSequential(
     data,
@@ -292,8 +411,10 @@ export default function App() {
     height,
     imageData
   ) {
+
     return new Promise(
       (resolve, reject) => {
+
         const worker =
           new Worker(
             new URL(
@@ -305,138 +426,212 @@ export default function App() {
             }
           );
 
+
         sequentialWorker.current =
           worker;
 
+
         worker.onmessage =
           (event) => {
+
             const message =
               event.data;
+
+
+            /* ---------------------------------------------
+               INDIVIDUAL SEQUENTIAL STEP
+               --------------------------------------------- */
 
             if (
               message.type ===
               "step"
             ) {
+
               setSequential(
                 (current) => {
+
                   const next = {
                     ...current,
+
                     status:
                       `Processing ${message.step}...`
                   };
+
 
                   if (
                     message.step ===
                     "colour"
                   ) {
+
                     next.palette =
                       message.result;
 
                     next.colourTime =
                       message.duration;
+
                   }
+
 
                   if (
                     message.step ===
                     "ai"
                   ) {
+
                     next.ai =
                       message.result;
 
                     next.aiTime =
                       message.duration;
+
                   }
+
 
                   if (
                     message.step ===
                     "histogram"
                   ) {
+
                     next.histogram =
                       message.result;
 
                     next.histogramTime =
                       message.duration;
+
                   }
+
 
                   if (
                     message.step ===
                     "statistics"
                   ) {
+
                     next.statistics =
                       message.result;
 
                     next.statisticsTime =
                       message.duration;
+
                   }
 
+
                   return next;
+
                 }
               );
+
             }
+
+
+            /* ---------------------------------------------
+               SEQUENTIAL COMPLETE
+               --------------------------------------------- */
 
             if (
               message.type ===
               "complete"
             ) {
+
               setSequential(
                 (current) => ({
+
                   ...current,
+
                   status:
                     "Completed",
+
                   totalTime:
                     message.totalTime
+
                 })
               );
+
 
               worker.terminate();
 
               sequentialWorker.current =
                 null;
 
+
               resolve(
                 message.totalTime
               );
+
             }
+
+
+            /* ---------------------------------------------
+               SEQUENTIAL ERROR
+               --------------------------------------------- */
 
             if (
               message.type ===
               "error"
             ) {
+
               worker.terminate();
 
               sequentialWorker.current =
                 null;
+
 
               reject(
                 new Error(
                   message.error
                 )
               );
+
             }
+
           };
+
 
         worker.onerror =
           (error) => {
+
             worker.terminate();
 
             sequentialWorker.current =
               null;
 
             reject(error);
+
           };
 
+
         worker.postMessage({
+
           rgba: data,
+
           pixels,
+
           width,
+
           height,
+
           fileSize:
             imageFile.size,
+
           imageData
+
         });
+
       }
     );
+
   }
+
+
+  /* =======================================================
+     PARALLEL EXECUTION
+     
+     TWO WORKERS:
+     
+     Worker 1 → AI
+     Worker 2 → Analysis
+                 ├── K-Means
+                 ├── Histogram
+                 └── Statistics
+     ======================================================= */
 
   function runParallel(
     data,
@@ -446,25 +641,46 @@ export default function App() {
     imageData,
     sequentialTime
   ) {
+
     return new Promise(
       (resolve, reject) => {
+
         const start =
           performance.now();
 
-        let completed = 0;
-        let failed = false;
+
+        let completed =
+          0;
+
+        let failed =
+          false;
+
+
+        /* =================================================
+           WORKER COMPLETE HANDLER
+           ================================================= */
 
         const handleComplete =
           () => {
+
             completed++;
 
+
+            /*
+             * Only finish when BOTH
+             * parallel workers are done.
+             */
+
             if (
-              completed === 4 &&
+              completed ===
+                PARALLEL_WORKER_COUNT &&
               !failed
             ) {
+
               const totalTime =
                 performance.now() -
                 start;
+
 
               const speedup =
                 calculateSpeedup(
@@ -472,26 +688,41 @@ export default function App() {
                   totalTime
                 );
 
+
               const efficiency =
                 calculateEfficiency(
                   speedup,
-                  4
+                  PARALLEL_WORKER_COUNT
                 );
+
 
               setParallel(
                 (current) => ({
+
                   ...current,
+
                   totalTime,
+
                   speedup,
+
                   efficiency
+
                 })
               );
+
 
               resolve(
                 totalTime
               );
+
             }
+
           };
+
+
+        /* =================================================
+           WORKER ERROR HANDLER
+           ================================================= */
 
         const handleError =
           (
@@ -499,67 +730,53 @@ export default function App() {
             worker,
             error
           ) => {
+
             if (failed) {
               return;
             }
 
+
             failed = true;
+
 
             const message =
               error?.message ||
               error ||
               "Worker failed";
 
+
             updateWorker(
               workerId,
               {
-                status: "error",
-                progress: 0,
-                duration: null
+
+                status:
+                  "error",
+
+                progress:
+                  0,
+
+                duration:
+                  null
+
               }
             );
 
+
             worker.terminate();
+
 
             reject(
               new Error(
                 message
               )
             );
+
           };
 
-        const colour =
-          new Worker(
-            new URL(
-              "./workers/colourWorker.js",
-              import.meta.url
-            ),
-            {
-              type: "module"
-            }
-          );
 
-        const histogram =
-          new Worker(
-            new URL(
-              "./workers/histogramWorker.js",
-              import.meta.url
-            ),
-            {
-              type: "module"
-            }
-          );
-
-        const statistics =
-          new Worker(
-            new URL(
-              "./workers/statisticsWorker.js",
-              import.meta.url
-            ),
-            {
-              type: "module"
-            }
-          );
+        /* =================================================
+           CREATE AI WORKER
+           ================================================= */
 
         const ai =
           new Worker(
@@ -572,641 +789,772 @@ export default function App() {
             }
           );
 
-        colourWorker.current =
-          colour;
 
-        histogramWorker.current =
-          histogram;
+        /* =================================================
+           CREATE ANALYSIS WORKER
+           ================================================= */
 
-        statisticsWorker.current =
-          statistics;
+        const analysis =
+          new Worker(
+            new URL(
+              "./workers/analysisWorker.js",
+              import.meta.url
+            ),
+            {
+              type: "module"
+            }
+          );
+
 
         aiWorker.current =
           ai;
 
+        analysisWorker.current =
+          analysis;
+
+
+        /* =================================================
+           INITIAL WORKER STATUS
+           ================================================= */
+
         updateWorker(
           1,
           {
-            status: "running",
-            progress: 10
+
+            status:
+              "running",
+
+            progress:
+              10
+
           }
         );
+
 
         updateWorker(
           2,
           {
-            status: "running",
-            progress: 10
+
+            status:
+              "running",
+
+            progress:
+              10
+
           }
         );
 
-        updateWorker(
-          3,
-          {
-            status: "running",
-            progress: 10
-          }
-        );
 
-        updateWorker(
-          4,
-          {
-            status: "running",
-            progress: 10
-          }
-        );
-
-        colour.onmessage =
-          (event) => {
-            const message =
-              event.data;
-
-            if (
-              message.type ===
-              "complete"
-            ) {
-              setParallel(
-                (current) => ({
-                  ...current,
-                  palette:
-                    message.result,
-                  colourTime:
-                    message.duration
-                })
-              );
-
-              updateWorker(
-                1,
-                {
-                  status:
-                    "complete",
-                  progress: 100,
-                  duration:
-                    message.duration
-                }
-              );
-
-              colour.terminate();
-
-              handleComplete();
-            }
-
-            if (
-              message.type ===
-              "error"
-            ) {
-              handleError(
-                1,
-                colour,
-                message.error
-              );
-            }
-          };
-
-        histogram.onmessage =
-          (event) => {
-            const message =
-              event.data;
-
-            if (
-              message.type ===
-              "complete"
-            ) {
-              setParallel(
-                (current) => ({
-                  ...current,
-                  histogram:
-                    message.result,
-                  histogramTime:
-                    message.duration
-                })
-              );
-
-              updateWorker(
-                3,
-                {
-                  status:
-                    "complete",
-                  progress: 100,
-                  duration:
-                    message.duration
-                }
-              );
-
-              histogram.terminate();
-
-              handleComplete();
-            }
-
-            if (
-              message.type ===
-              "error"
-            ) {
-              handleError(
-                3,
-                histogram,
-                message.error
-              );
-            }
-          };
-
-        statistics.onmessage =
-          (event) => {
-            const message =
-              event.data;
-
-            if (
-              message.type ===
-              "complete"
-            ) {
-              setParallel(
-                (current) => ({
-                  ...current,
-                  statistics:
-                    message.result,
-                  statisticsTime:
-                    message.duration
-                })
-              );
-
-              updateWorker(
-                4,
-                {
-                  status:
-                    "complete",
-                  progress: 100,
-                  duration:
-                    message.duration
-                }
-              );
-
-              statistics.terminate();
-
-              handleComplete();
-            }
-
-            if (
-              message.type ===
-              "error"
-            ) {
-              handleError(
-                4,
-                statistics,
-                message.error
-              );
-            }
-          };
+        /* =================================================
+           AI WORKER MESSAGE
+           ================================================= */
 
         ai.onmessage =
           (event) => {
+
             const message =
               event.data;
+
 
             if (
               message.type ===
               "complete"
             ) {
+
               setParallel(
                 (current) => ({
+
                   ...current,
+
                   ai:
                     message.result,
+
                   aiTime:
                     message.duration
+
                 })
               );
 
+
               updateWorker(
-                2,
+                1,
                 {
+
                   status:
                     "complete",
-                  progress: 100,
+
+                  progress:
+                    100,
+
                   duration:
                     message.duration
+
                 }
               );
 
+
               ai.terminate();
 
+
               handleComplete();
+
             }
+
 
             if (
               message.type ===
               "error"
             ) {
+
               handleError(
-                2,
+                1,
                 ai,
                 message.error
               );
+
             }
+
           };
 
-        colour.onerror =
-          (error) => {
-            handleError(
-              1,
-              colour,
-              error
-            );
+
+        /* =================================================
+           ANALYSIS WORKER MESSAGE
+           ================================================= */
+
+        analysis.onmessage =
+          (event) => {
+
+            const message =
+              event.data;
+
+
+            if (
+              message.type ===
+              "complete"
+            ) {
+
+              /*
+               * analysisWorker should return:
+               *
+               * {
+               *   palette,
+               *   histogram,
+               *   statistics,
+               *   colourTime,
+               *   histogramTime,
+               *   statisticsTime,
+               *   duration
+               * }
+               */
+
+
+              setParallel(
+                (current) => ({
+
+                  ...current,
+
+                  palette:
+                    message.palette ||
+                    [],
+
+                  histogram:
+                    message.histogram ||
+                    null,
+
+                  statistics:
+                    message.statistics ||
+                    null,
+
+                  colourTime:
+                    message.colourTime ??
+                    null,
+
+                  histogramTime:
+                    message.histogramTime ??
+                    null,
+
+                  statisticsTime:
+                    message.statisticsTime ??
+                    null
+
+                })
+              );
+
+
+              updateWorker(
+                2,
+                {
+
+                  status:
+                    "complete",
+
+                  progress:
+                    100,
+
+                  duration:
+                    message.duration
+
+                }
+              );
+
+
+              analysis.terminate();
+
+
+              handleComplete();
+
+            }
+
+
+            if (
+              message.type ===
+              "error"
+            ) {
+
+              handleError(
+                2,
+                analysis,
+                message.error
+              );
+
+            }
+
           };
 
-        histogram.onerror =
-          (error) => {
-            handleError(
-              3,
-              histogram,
-              error
-            );
-          };
 
-        statistics.onerror =
-          (error) => {
-            handleError(
-              4,
-              statistics,
-              error
-            );
-          };
+        /* =================================================
+           ERROR HANDLERS
+           ================================================= */
 
         ai.onerror =
           (error) => {
+
             handleError(
-              2,
+              1,
               ai,
               error
             );
+
           };
 
-        colour.postMessage({
-          pixels
-        });
 
-        histogram.postMessage({
-          rgba: data
-        });
+        analysis.onerror =
+          (error) => {
 
-        statistics.postMessage({
-          rgba: data,
-          width,
-          height,
-          fileSize:
-            imageFile.size
-        });
+            handleError(
+              2,
+              analysis,
+              error
+            );
+
+          };
+
+
+        /* =================================================
+           START AI WORKER
+           ================================================= */
 
         ai.postMessage({
+
           rgba: data,
+
           width,
+
           height
+
         });
+
+
+        /* =================================================
+           START ANALYSIS WORKER
+           
+           One worker performs the three lightweight
+           independent operations.
+           ================================================= */
+
+        analysis.postMessage({
+
+          pixels,
+
+          rgba: data,
+
+          width,
+
+          height,
+
+          fileSize:
+            imageFile.size
+
+        });
+
       }
     );
+
   }
 
+
+  /* =======================================================
+     RENDER
+     ======================================================= */
+
   return (
-    <div className="app-shell">
+  <div className="app-shell">
 
-      {/* =====================================================
-          HEADER
-      ===================================================== */}
+    {/* =====================================================
+        HEADER
+        ===================================================== */}
 
-      <header className="app-header">
-        <div className="container app-header-inner">
+    <header className="app-header">
 
-          <div>
-            <div className="app-eyebrow">
-              PARALLEL COMPUTING • AI IMAGE ANALYSIS
-            </div>
+      <div className="container app-header-inner">
 
-            <h1 className="app-title">
-              Parallel AI-Based
-              <span> Image Analysis</span>
-            </h1>
+        <div>
 
-            <p className="app-subtitle">
-              Analyse images using sequential and
-              concurrent Web Worker execution,
-              then measure the performance difference.
-            </p>
+          <div className="app-eyebrow">
+            PARALLEL COMPUTING • AI IMAGE ANALYSIS
           </div>
 
-          <div
-            className={`system-status ${
-              running
-                ? "system-status-running"
-                : "system-status-ready"
-            }`}
-          >
-            <span className="status-dot" />
+          <h1 className="app-title">
+            Parallel AI-Based
+            <span> Image Analysis</span>
+          </h1>
 
-            {running
-              ? "Processing"
-              : "System Ready"}
+          <p className="app-subtitle">
+            Analyse images using sequential and
+            concurrent Web Worker execution,
+            then measure the performance difference.
+          </p>
+
+        </div>
+
+
+        <div
+          className={`system-status ${
+            running
+              ? "system-status-running"
+              : "system-status-ready"
+          }`}
+        >
+
+          <span className="status-dot" />
+
+          {running
+            ? "Processing"
+            : "System Ready"}
+
+        </div>
+
+      </div>
+
+    </header>
+
+
+    {/* =====================================================
+        MAIN DASHBOARD
+        ===================================================== */}
+
+    <main className="container app-main">
+
+
+      {/* =================================================
+          STEP 01 — IMAGE UPLOAD
+          ================================================= */}
+
+      <section className="dashboard-section upload-section">
+
+        <div className="section-heading">
+
+          <div>
+
+            <span className="section-kicker">
+              STEP 01
+            </span>
+
+            <h2>
+              Select an image
+            </h2>
+
+            <p>
+              Upload an image to begin the
+              sequential and parallel analysis.
+            </p>
+
           </div>
 
         </div>
-      </header>
 
-      {/* =====================================================
-          MAIN DASHBOARD
-      ===================================================== */}
 
-      <main className="container app-main">
+        <div className="upload-card">
 
-        {/* =================================================
-            UPLOAD SECTION
-        ================================================= */}
+          <ImageUploader
+            onImageSelected={
+              handleImageSelected
+            }
+            disabled={
+              running
+            }
+          />
 
-        <section className="dashboard-section upload-section">
 
-          <div className="section-heading">
-            <div>
-              <span className="section-kicker">
-                STEP 01
-              </span>
+          {imageUrl && (
 
-              <h2>
-                Select an image
-              </h2>
+            <div className="preview-area">
 
-              <p>
-                Upload an image to begin the
-                sequential and parallel analysis.
-              </p>
-            </div>
-          </div>
+              <div className="preview-image-wrapper">
 
-          <div className="upload-card">
+                <img
+                  src={imageUrl}
+                  alt="Uploaded preview"
+                  className="image-preview"
+                />
 
-            <ImageUploader
-              onImageSelected={
-                handleImageSelected
-              }
-              disabled={running}
-            />
+              </div>
 
-            {imageUrl && (
-              <div className="preview-area">
 
-                <div className="preview-image-wrapper">
-                  <img
-                    src={imageUrl}
-                    alt="Uploaded preview"
-                    className="image-preview"
-                  />
+              <div className="preview-meta">
+
+                <div>
+
+                  <span className="preview-label">
+                    SELECTED IMAGE
+                  </span>
+
+                  <div className="preview-name">
+                    {imageFile.name}
+                  </div>
+
                 </div>
 
-                <div className="preview-meta">
 
-                  <div>
-                    <span className="preview-label">
-                      SELECTED IMAGE
-                    </span>
+                <div className="preview-ready">
 
-                    <div className="preview-name">
-                      {imageFile.name}
-                    </div>
-                  </div>
+                  <span className="status-dot" />
 
-                  <div className="preview-ready">
-                    <span className="status-dot" />
-                    Ready for analysis
-                  </div>
+                  Ready for analysis
 
                 </div>
 
               </div>
+
+            </div>
+
+          )}
+
+        </div>
+
+
+        <div className="analysis-action">
+
+          <button
+            className="analysis-button"
+            disabled={
+              !imageFile ||
+              running
+            }
+            onClick={
+              runAnalysis
+            }
+          >
+
+            <span className="analysis-button-icon">
+
+              {running
+                ? "◌"
+                : "▶"}
+
+            </span>
+
+
+            <span>
+
+              {running
+                ? "Analysis in progress..."
+                : "Run Complete Analysis"}
+
+            </span>
+
+
+            {!running && (
+
+              <span className="analysis-button-arrow">
+                →
+              </span>
+
             )}
 
-          </div>
+          </button>
 
-          <div className="analysis-action">
 
-            <button
-              className="analysis-button"
-              disabled={
-                !imageFile ||
-                running
-              }
-              onClick={
-                runAnalysis
-              }
-            >
-              <span className="analysis-button-icon">
-                {running ? "◌" : "▶"}
-              </span>
+          {!imageFile && (
 
-              <span>
-                {running
-                  ? "Analysis in progress..."
-                  : "Run Complete Analysis"}
-              </span>
+            <p className="action-hint">
+              Upload an image first to enable analysis.
+            </p>
 
-              {!running && (
-                <span className="analysis-button-arrow">
-                  →
-                </span>
-              )}
-            </button>
+          )}
 
-            {!imageFile && (
-              <p className="action-hint">
-                Upload an image first to enable analysis.
-              </p>
-            )}
+        </div>
 
-          </div>
+      </section>
 
-        </section>
 
-        {/* =================================================
-            PROCESSING COMPARISON
-        ================================================= */}
+      {/* =================================================
+          STEP 02 — PROCESSING COMPARISON
+          ================================================= */}
 
-        <section className="dashboard-section">
+      <section className="dashboard-section">
 
-          <div className="section-heading section-heading-row">
+        <div className="section-heading section-heading-row">
 
-            <div>
-              <span className="section-kicker">
-                STEP 02
-              </span>
+          <div>
 
-              <h2>
-                Processing comparison
-              </h2>
+            <span className="section-kicker">
+              STEP 02
+            </span>
 
-              <p>
-                Compare single-threaded execution with
-                four concurrent Web Workers.
-              </p>
-            </div>
+            <h2>
+              Processing comparison
+            </h2>
 
-            <div className="worker-count-badge">
-              <strong>4</strong>
-              <span>
-                parallel workers
-              </span>
-            </div>
+            <p>
+              Compare single-threaded execution with
+              two concurrent Web Workers.
+            </p>
 
           </div>
 
-          <div className="processing-grid">
 
-            <div className="processing-column">
-              <SequentialPanel
-                data={
-                  sequential
-                }
-              />
-            </div>
+          <div className="worker-count-badge">
 
-            <div className="processing-divider">
-              <span>VS</span>
-            </div>
+            <strong>
+              2
+            </strong>
 
-            <div className="processing-column">
-              <ParallelPanel
-                data={
-                  parallel
-                }
-              />
-            </div>
+            <span>
+              parallel workers
+            </span>
 
           </div>
 
-        </section>
+        </div>
 
-        {/* =================================================
-            PERFORMANCE
-        ================================================= */}
 
-        <section className="dashboard-section performance-section">
+        <div className="processing-grid">
 
-          <div className="section-heading">
 
-            <div>
-              <span className="section-kicker">
-                STEP 03
-              </span>
+          {/* ---------------------------------------------
+              SEQUENTIAL PANEL
+              --------------------------------------------- */}
 
-              <h2>
-                Performance analysis
-              </h2>
+          <div className="processing-column">
 
-              <p>
-                Benchmark the two execution strategies
-                and measure the benefit of parallelism.
-              </p>
-            </div>
-
-          </div>
-
-          <div className="performance-card">
-
-            <ComparisonTable
-              sequential={
+            <SequentialPanel
+              data={
                 sequential
               }
-              parallel={
+            />
+
+          </div>
+
+
+          {/* ---------------------------------------------
+              DIVIDER
+              --------------------------------------------- */}
+
+          <div className="processing-divider">
+
+            <span>
+              VS
+            </span>
+
+          </div>
+
+
+          {/* ---------------------------------------------
+              PARALLEL PANEL
+              --------------------------------------------- */}
+
+          <div className="processing-column">
+
+            <ParallelPanel
+              data={
                 parallel
               }
             />
 
           </div>
 
-        </section>
+        </div>
 
-        {/* =================================================
-            PROJECT EXPLANATION
-        ================================================= */}
+      </section>
 
-        <section className="concept-strip">
 
-          <div className="concept-item">
-            <span className="concept-number">
-              01
-            </span>
+      {/* =================================================
+          STEP 03 — PERFORMANCE
+          ================================================= */}
 
-            <div>
-              <strong>
-                Sequential
-              </strong>
+      <section className="dashboard-section performance-section">
 
-              <p>
-                Tasks execute one after another
-                on a single processing flow.
-              </p>
-            </div>
-          </div>
-
-          <div className="concept-item">
-            <span className="concept-number">
-              02
-            </span>
-
-            <div>
-              <strong>
-                Parallel
-              </strong>
-
-              <p>
-                Independent analysis tasks run
-                concurrently using Web Workers.
-              </p>
-            </div>
-          </div>
-
-          <div className="concept-item">
-            <span className="concept-number">
-              03
-            </span>
-
-            <div>
-              <strong>
-                Measure
-              </strong>
-
-              <p>
-                Execution time, speedup and efficiency
-                quantify the performance difference.
-              </p>
-            </div>
-          </div>
-
-        </section>
-
-      </main>
-
-      {/* =====================================================
-          FOOTER
-      ===================================================== */}
-
-      <footer className="app-footer">
-
-        <div className="container footer-inner">
+        <div className="section-heading">
 
           <div>
-            <strong>
-              Parallel AI-Based Image Analysis
-            </strong>
 
-            <span>
-              Browser-based parallel image processing
-              and performance analysis.
+            <span className="section-kicker">
+              STEP 03
             </span>
-          </div>
 
-          <div className="footer-tech">
-            React • Web Workers • AI • Parallel Computing
+            <h2>
+              Performance analysis
+            </h2>
+
+            <p>
+              Benchmark the two execution strategies
+              and measure the benefit of parallelism.
+            </p>
+
           </div>
 
         </div>
 
-      </footer>
 
-    </div>
-  );
-}
+        <div className="performance-card">
+
+          <ComparisonTable
+            sequential={
+              sequential
+            }
+            parallel={
+              parallel
+            }
+          />
+
+        </div>
+
+      </section>
+
+
+      {/* =================================================
+          PROJECT EXPLANATION
+          ================================================= */}
+
+      <section className="concept-strip">
+
+
+        {/* ---------------------------------------------
+            SEQUENTIAL
+            --------------------------------------------- */}
+
+        <div className="concept-item">
+
+          <span className="concept-number">
+            01
+          </span>
+
+
+          <div>
+
+            <strong>
+              Sequential
+            </strong>
+
+            <p>
+              Tasks execute one after another
+              on a single processing flow.
+            </p>
+
+          </div>
+
+        </div>
+
+
+        {/* ---------------------------------------------
+            PARALLEL
+            --------------------------------------------- */}
+
+        <div className="concept-item">
+
+          <span className="concept-number">
+            02
+          </span>
+
+
+          <div>
+
+            <strong>
+              Parallel
+            </strong>
+
+            <p>
+              AI inference and lightweight image
+              analysis execute concurrently using
+              two Web Workers.
+            </p>
+
+          </div>
+
+        </div>
+
+
+        {/* ---------------------------------------------
+            MEASUREMENT
+            --------------------------------------------- */}
+
+        <div className="concept-item">
+
+          <span className="concept-number">
+            03
+          </span>
+
+
+          <div>
+
+            <strong>
+              Measure
+            </strong>
+
+            <p>
+              Execution time, speedup and efficiency
+              quantify the performance difference.
+            </p>
+
+          </div>
+
+        </div>
+
+      </section>
+
+    </main>
+
+
+    {/* =====================================================
+        FOOTER
+        ===================================================== */}
+
+    <footer className="app-footer">
+
+      <div className="container footer-inner">
+
+        <div>
+
+          <strong>
+            Parallel AI-Based Image Analysis
+          </strong>
+
+          <span>
+            Browser-based parallel image processing
+            and performance analysis.
+          </span>
+
+        </div>
+
+
+        <div className="footer-tech">
+          React • Web Workers • AI • Parallel Computing
+        </div>
+
+      </div>
+
+    </footer>
+
+  </div>
+);
