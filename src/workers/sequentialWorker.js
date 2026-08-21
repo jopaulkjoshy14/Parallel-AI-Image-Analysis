@@ -18,7 +18,7 @@ async function loadDetector() {
 
   detector = await pipeline(
     "object-detection",
-    "onnx-community/rtdetr_r18vd",
+    "onnx-community/rfdetr_nano-ONNX",
     {
       device: "wasm",
       dtype: "q8"
