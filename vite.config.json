@@ -1,0 +1,31 @@
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+
+export default defineConfig({
+  plugins: [react()],
+  base: './',
+  build: {
+    outDir: 'dist',
+    sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'transformers': ['@huggingface/transformers'],
+          'react-vendor': ['react', 'react-dom']
+        }
+      }
+    }
+  },
+  optimizeDeps: {
+    include: ['@huggingface/transformers']
+  },
+  server: {
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'require-corp'
+    }
+  },
+  worker: {
+    format: 'es'
+  }
+})
