@@ -7,25 +7,6 @@ import {
 env.backends.onnx.wasm.wasmPaths =
   "/wasm/";
 
-let detector = null;
-
-async function loadDetector() {
-  if (detector) {
-    return detector;
-  }
-
-  detector = await pipeline(
-    "object-detection",
-    "onnx-community/rfdetr_nano-ONNX",
-    {
-      device: "wasm",
-      dtype: "q8"
-    }
-  );
-
-  return detector;
-}
-
 self.onmessage = async (event) => {
   const {
     rgba,
@@ -37,14 +18,31 @@ self.onmessage = async (event) => {
     performance.now();
 
   try {
+    /*
+     * -------------------------------------------------
+     * STEP 1
+     * Load RT-DETR model
+     *
+     * A new model instance is created for this
+     * worker execution only.
+     * -------------------------------------------------
+     */
+
     const model =
-      await loadDetector();
+      await pipeline(
+        "object-detection",
+        "onnx-community/rfdetr_nano-ONNX",
+        {
+          device: "wasm",
+          dtype: "q8"
+        }
+      );
 
     /*
-     * Convert the RGBA pixel buffer
-     * into a Transformers.js RawImage.
-     *
-     * 4 = RGBA channels.
+     * -------------------------------------------------
+     * STEP 2
+     * Convert RGBA data to RawImage
+     * -------------------------------------------------
      */
 
     const image =
@@ -56,15 +54,10 @@ self.onmessage = async (event) => {
       );
 
     /*
-     * RT-DETR returns object detections:
-     *
-     * - label
-     * - score
-     * - bounding box
-     *
-     * A low threshold is intentionally used
-     * during the initial model experiment so
-     * that we can inspect the model's predictions.
+     * -------------------------------------------------
+     * STEP 3
+     * AI inference
+     * -------------------------------------------------
      */
 
     const output =
@@ -73,8 +66,14 @@ self.onmessage = async (event) => {
       });
 
     const duration =
-      performance.now() -
-      start;
+      performance.now() - start;
+
+    /*
+     * -------------------------------------------------
+     * STEP 4
+     * Send result
+     * -------------------------------------------------
+     */
 
     self.postMessage({
       type: "complete",
@@ -82,7 +81,19 @@ self.onmessage = async (event) => {
       duration
     });
 
+    /*
+     * -------------------------------------------------
+     * STEP 5
+     * Destroy this worker context
+     *
+     * The worker cannot process another image.
+     * -------------------------------------------------
+     */
+
+    self.close();
+
   } catch (error) {
+
     console.error(
       "AI worker error:",
       error
@@ -94,5 +105,11 @@ self.onmessage = async (event) => {
         error?.message ||
         String(error)
     });
+
+    /*
+     * Close even when inference fails.
+     */
+
+    self.close();
   }
 };
