@@ -1,10 +1,12 @@
 import { kMeans } from "../utils/kmeans";
+
 import {
   calculateHistogram,
   calculateStatistics
 } from "../utils/imageProcessing";
 
 self.onmessage = (event) => {
+
   const {
     pixels,
     rgba,
@@ -13,12 +15,16 @@ self.onmessage = (event) => {
     fileSize
   } = event.data;
 
-  const start = performance.now();
+  const start =
+    performance.now();
 
   try {
-    // -----------------------------
-    // 01. K-Means colour extraction
-    // -----------------------------
+
+    /*
+     * -------------------------------------------------
+     * 01. K-MEANS COLOUR EXTRACTION
+     * -------------------------------------------------
+     */
 
     const colourStart =
       performance.now();
@@ -35,9 +41,11 @@ self.onmessage = (event) => {
       colourStart;
 
 
-    // -----------------------------
-    // 02. RGB Histogram
-    // -----------------------------
+    /*
+     * -------------------------------------------------
+     * 02. RGB HISTOGRAM
+     * -------------------------------------------------
+     */
 
     const histogramStart =
       performance.now();
@@ -50,9 +58,11 @@ self.onmessage = (event) => {
       histogramStart;
 
 
-    // -----------------------------
-    // 03. Image Statistics
-    // -----------------------------
+    /*
+     * -------------------------------------------------
+     * 03. IMAGE STATISTICS
+     * -------------------------------------------------
+     */
 
     const statisticsStart =
       performance.now();
@@ -70,37 +80,74 @@ self.onmessage = (event) => {
       statisticsStart;
 
 
-    // -----------------------------
-    // Total analysis-worker time
-    // -----------------------------
+    /*
+     * -------------------------------------------------
+     * TOTAL ANALYSIS TIME
+     * -------------------------------------------------
+     */
 
     const totalTime =
       performance.now() -
       start;
 
 
+    /*
+     * -------------------------------------------------
+     * SEND RESULT
+     * -------------------------------------------------
+     */
+
     self.postMessage({
+
       type: "complete",
 
       palette,
+
       histogram,
+
       statistics,
 
       colourTime,
+
       histogramTime,
+
       statisticsTime,
 
       totalTime
+
     });
+
+
+    /*
+     * -------------------------------------------------
+     * ONE-SHOT WORKER
+     * -------------------------------------------------
+     */
+
+    self.close();
 
   } catch (error) {
 
+    console.error(
+      "Analysis worker error:",
+      error
+    );
+
     self.postMessage({
+
       type: "error",
+
       error:
         error?.message ||
-        "Image analysis worker failed"
+        String(error)
+
     });
 
+    /*
+     * Always destroy the worker
+     * after failure as well.
+     */
+
+    self.close();
   }
 };
