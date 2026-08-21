@@ -18,7 +18,7 @@ async function loadDetector() {
 
   detector = await pipeline(
     "object-detection",
-    "Xenova/detr-resnet-50",
+    "Xenova/yolos-tiny",
     {
       device: "wasm",
       dtype: "q8"
@@ -100,7 +100,7 @@ self.onmessage = async (event) => {
       );
 
     /*
-     * DETR returns detected objects with:
+     * YOLOS-Tiny returns detected objects with:
      *
      * - label
      * - score
