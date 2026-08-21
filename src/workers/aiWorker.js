@@ -4,12 +4,6 @@ import {
   RawImage
 } from "@huggingface/transformers";
 
-env.allowRemoteModels = false;
-env.allowLocalModels = true;
-
-env.localModelPath =
-  "/models/";
-
 env.backends.onnx.wasm.wasmPaths =
   "/wasm/";
 
@@ -52,6 +46,7 @@ self.onmessage = async (event) => {
      *
      * 4 = RGBA channels.
      */
+
     const image =
       new RawImage(
         new Uint8ClampedArray(rgba),
@@ -59,6 +54,16 @@ self.onmessage = async (event) => {
         height,
         4
       );
+
+    /*
+     * DETR returns:
+     * - label
+     * - score
+     * - bounding box
+     *
+     * Low threshold is intentional for
+     * the initial model experiment.
+     */
 
     const output =
       await model(image, {
@@ -74,6 +79,7 @@ self.onmessage = async (event) => {
       result: output,
       duration
     });
+
   } catch (error) {
     console.error(
       "AI worker error:",
@@ -83,7 +89,7 @@ self.onmessage = async (event) => {
     self.postMessage({
       type: "error",
       error:
-        error.message ||
+        error?.message ||
         String(error)
     });
   }
