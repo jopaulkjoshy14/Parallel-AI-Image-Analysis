@@ -16,7 +16,7 @@ async function loadDetector() {
 
   detector = await pipeline(
     "object-detection",
-    "Xenova/yolos-tiny",
+    "onnx-community/yolov10n",
     {
       device: "wasm",
       dtype: "q8"
@@ -56,7 +56,8 @@ self.onmessage = async (event) => {
       );
 
     /*
-     * YOLOS-Tiny returns object detections:
+     * YOLOv10n returns object detections:
+     *
      * - label
      * - score
      * - bounding box
