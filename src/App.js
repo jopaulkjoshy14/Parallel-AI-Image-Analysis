@@ -1062,7 +1062,7 @@ export default function App() {
   }
 
 
-  /* =======================================================
+    /* =======================================================
      RENDER
      ======================================================= */
 
@@ -1311,7 +1311,7 @@ export default function App() {
 
 
             {/* ---------------------------------------------
-                SEQUENTIAL PANEL
+                SEQUENTIAL
                 --------------------------------------------- */}
 
             <div className="processing-column">
@@ -1339,7 +1339,7 @@ export default function App() {
 
 
             {/* ---------------------------------------------
-                PARALLEL PANEL
+                PARALLEL
                 --------------------------------------------- */}
 
             <div className="processing-column">
@@ -1358,7 +1358,7 @@ export default function App() {
 
 
         {/* =================================================
-            STEP 03 — PERFORMANCE
+            STEP 03 — PERFORMANCE ANALYSIS
             ================================================= */}
 
         <section className="dashboard-section performance-section">
