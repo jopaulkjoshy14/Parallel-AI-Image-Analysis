@@ -188,14 +188,14 @@ function validateColours(
   tolerances
 ) {
   const serialColours =
-    Array.isArray(serial?.colors)
-      ? serial.colors
-      : [];
+  Array.isArray(serial?.colours)
+    ? serial.colours
+    : [];
 
-  const parallelColours =
-    Array.isArray(parallel?.colors)
-      ? parallel.colors
-      : [];
+const parallelColours =
+  Array.isArray(parallel?.colours)
+    ? parallel.colours
+    : [];
 
   if (serialColours.length !== parallelColours.length) {
     addFailure(
@@ -406,7 +406,8 @@ function validateSharpness(
 function validateExposure(
   serial,
   parallel,
-  failures
+  failures,
+  tolerances
 ) {
   const a = serial?.exposure;
   const b = parallel?.exposure;
@@ -475,9 +476,9 @@ function validateSpatial(
   }
 
   for (const field of [
-    'centerLuminance',
-    'outerLuminance',
-    'difference'
+    'centerMeanLuminance',
+    'outerMeanLuminance',
+    'centerOuterDifference'
   ]) {
     if (
       !approximatelyEqual(
@@ -574,22 +575,33 @@ function validateImageInfo(
   parallel,
   failures
 ) {
+  const imageA = serial?.image;
+  const imageB = parallel?.image;
+
+  if (!imageA || !imageB) {
+    addFailure(
+      failures,
+      'image',
+      'Image information is missing from one execution.'
+    );
+
+    return;
+  }
+
   const fields = [
-    'width',
-    'height',
+    'originalWidth',
+    'originalHeight',
     'processedWidth',
-    'processedHeight'
+    'processedHeight',
+    'resized'
   ];
 
   for (const field of fields) {
-    if (
-      Number(serial?.[field]) !==
-      Number(parallel?.[field])
-    ) {
+    if (imageA[field] !== imageB[field]) {
       addFailure(
         failures,
         'image',
-        `Image ${field} differs: ${serial?.[field]} vs ${parallel?.[field]}`
+        `Image ${field} differs: ${imageA[field]} vs ${imageB[field]}`
       );
     }
   }
@@ -683,10 +695,11 @@ export function validateResults(
   );
 
   validateExposure(
-    serialResult.analysis,
-    parallelResult.analysis,
-    failures
-  );
+  serialResult.analysis,
+  parallelResult.analysis,
+  failures,
+  tolerances
+);
 
   validateSpatial(
     serialResult.analysis,
