@@ -689,7 +689,7 @@ export function initApp(root) {
   analysisWorker =
     new Worker(
       new URL(
-        './analysis.worker.js',
+        './workers/analysis.worker.js',
         import.meta.url
       ),
       {
