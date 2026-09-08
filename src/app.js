@@ -1992,12 +1992,10 @@ export function initApp(root) {
      */
 
     const validationPassed =
-      validation.passed === true;
+      validation.valid === true;
 
-
-    const validationFailed =
-      validation.passed === false;
-
+  const validationFailed =
+      validation.valid === false;
 
     let validationTitle =
       'Validation status unavailable.';
@@ -2021,9 +2019,9 @@ export function initApp(root) {
 
     const validationDetails =
       Array.isArray(
-        validation.errors
+        validation.failures
       )
-        ? validation.errors
+        ? validation.failures
         : [];
 
 
