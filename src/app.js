@@ -1985,79 +1985,73 @@ export function initApp(root) {
       `;
 
 
-    /*
-     * -------------------------------------------------------
-     * Validation
-     * -------------------------------------------------------
-     */
+/*
+ * -------------------------------------------------------
+ * Validation
+ * -------------------------------------------------------
+ */
 
-    const validationPassed =
-      validation.valid === true;
+const validationPassed =
+  validation.valid === true;
 
-  const validationFailed =
-      validation.valid === false;
+const validationFailed =
+  validation.valid === false;
 
-    let validationTitle =
-      'Validation status unavailable.';
+let validationTitle =
+  'Validation status unavailable.';
 
+if (validationPassed) {
+  validationTitle =
+    '✓ Serial and parallel outputs validated.';
+}
 
-    if (
-      validationPassed
-    ) {
-      validationTitle =
-        '✓ Serial and parallel outputs validated.';
-    }
+if (validationFailed) {
+  validationTitle =
+    '✗ Serial and parallel outputs did not validate.';
+}
 
-
-    if (
-      validationFailed
-    ) {
-      validationTitle =
-        '✗ Serial and parallel outputs did not validate.';
-    }
-
-
-    const validationDetails =
-      Array.isArray(
-        validation.failures
+const validationDetails =
+  Array.isArray(validation.failures)
+    ? validation.failures.map(
+        (failure) =>
+          failure?.message ||
+          JSON.stringify(failure)
       )
-        ? validation.failures
-        : [];
+    : [];
 
+benchmarkValidation.innerHTML =
+  `
+    <div class="details">
 
-    benchmarkValidation.innerHTML =
-      `
-        <div class="details">
+      <strong>
+        ${escapeHtml(
+          validationTitle
+        )}
+      </strong>
 
-          <strong>
-            ${escapeHtml(
-              validationTitle
-            )}
-          </strong>
+      ${
+        validationDetails.length
+          ? `
+            <ul>
+              ${validationDetails
+                .map(
+                  (error) =>
+                    `
+                      <li>
+                        ${escapeHtml(
+                          error
+                        )}
+                      </li>
+                    `
+                )
+                .join('')}
+            </ul>
+          `
+          : ''
+      }
 
-          ${
-            validationDetails.length
-              ? `
-                <ul>
-                  ${validationDetails
-                    .map(
-                      (error) =>
-                        `
-                          <li>
-                            ${escapeHtml(
-                              error
-                            )}
-                          </li>
-                        `
-                    )
-                    .join('')}
-                </ul>
-              `
-              : ''
-          }
-
-        </div>
-      `;
+    </div>
+  `;
 
 
     /*
