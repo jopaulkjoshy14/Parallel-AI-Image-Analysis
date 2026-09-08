@@ -73,15 +73,18 @@ export async function runSerial({
 
   const analysisBuffer = cloneBuffer(buffer);
 
-  const analysis = await requestWorker(
-    analysisWorker,
-    'analyze',
-    {
-      buffer: analysisBuffer,
-      mimeType
-    },
-    [analysisBuffer]
-  );
+const analysisPayload = await requestWorker(
+  analysisWorker,
+  'analyze',
+  {
+    buffer: analysisBuffer,
+    mimeType
+  },
+  [analysisBuffer]
+);
+
+const analysis =
+  analysisPayload?.result ?? analysisPayload;
 
   const completedAt = now();
 
@@ -129,15 +132,18 @@ export async function runParallel({
     [detectionBuffer]
   );
 
-  const analysisPromise = requestWorker(
-    analysisWorker,
-    'analyze',
-    {
-      buffer: analysisBuffer,
-      mimeType
-    },
-    [analysisBuffer]
-  );
+const analysisPromise = requestWorker(
+  analysisWorker,
+  'analyze',
+  {
+    buffer: analysisBuffer,
+    mimeType
+  },
+  [analysisBuffer]
+).then(
+  (analysisPayload) =>
+    analysisPayload?.result ?? analysisPayload
+);
 
   const [detection, analysis] = await Promise.all([
     detectionPromise,
